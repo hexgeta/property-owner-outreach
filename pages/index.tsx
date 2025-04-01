@@ -1,13 +1,21 @@
-import React from 'react';
-import Link from 'next/link';
-import CryptoDashboard from '@/components/crypto-dashboard';
+import { GetStaticProps } from 'next';
+import ReadingPractice from '../components/reading-practice';
 
-const Home = () => {
+export default function Home() {
   return (
-    <div className="p-6 sm:p-6 my-2 sm:my-4">
-      <CryptoDashboard/>
+    <div className="min-h-screen bg-black">
+      <div className="container mx-auto px-4 py-8">
+        <ReadingPractice />
+      </div>
     </div>
   );
-};
+}
 
-export default Home;
+export const getStaticProps: GetStaticProps = async () => {
+  return {
+    props: {
+      hideNav: true,
+      hideFooter: true
+    }
+  };
+};

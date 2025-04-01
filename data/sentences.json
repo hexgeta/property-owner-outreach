@@ -1,0 +1,453 @@
+{
+  "beginner": [
+    {
+      "text": "O gato preto pulou sobre o muro alto do jardim.",
+      "translation": "The black cat jumped over the high garden wall.",
+      "tags": ["animals", "basic verbs", "colors"]
+    },
+    {
+      "text": "Ela gosta de tomar café com leite pela manhã.",
+      "translation": "She likes to drink coffee with milk in the morning.",
+      "tags": ["daily routine", "food", "beverages"]
+    },
+    {
+      "text": "Meu amigo mora em uma casa perto da praia.",
+      "translation": "My friend lives in a house near the beach.",
+      "tags": ["housing", "locations", "relationships"]
+    },
+    {
+      "text": "O livro está em cima da mesa.",
+      "translation": "The book is on the table.",
+      "tags": ["objects", "locations", "basic prepositions"]
+    },
+    {
+      "text": "Eu como pão com manteiga no café da manhã.",
+      "translation": "I eat bread with butter for breakfast.",
+      "tags": ["food", "daily routine", "meals"]
+    },
+    {
+      "text": "A menina tem um cachorro pequeno.",
+      "translation": "The girl has a small dog.",
+      "tags": ["animals", "possessions", "adjectives"]
+    },
+    {
+      "text": "Nós vamos ao supermercado hoje.",
+      "translation": "We are going to the supermarket today.",
+      "tags": ["shopping", "daily activities", "present tense"]
+    },
+    {
+      "text": "O céu está azul e bonito.",
+      "translation": "The sky is blue and beautiful.",
+      "tags": ["weather", "colors", "adjectives"]
+    },
+    {
+      "text": "Ela trabalha em um escritório grande.",
+      "translation": "She works in a big office.",
+      "tags": ["work", "locations", "adjectives"]
+    },
+    {
+      "text": "As crianças brincam no parque.",
+      "translation": "The children play in the park.",
+      "tags": ["activities", "locations", "present tense"]
+    },
+    {
+      "text": "Eu preciso comprar pão na padaria.",
+      "translation": "I need to buy bread at the bakery.",
+      "tags": ["shopping", "food", "daily routine"]
+    },
+    {
+      "text": "A água está muito quente hoje.",
+      "translation": "The water is very hot today.",
+      "tags": ["weather", "temperature", "basic adjectives"]
+    },
+    {
+      "text": "Minha irmã gosta de dançar ballet.",
+      "translation": "My sister likes to dance ballet.",
+      "tags": ["hobbies", "family", "activities"]
+    },
+    {
+      "text": "O jardim tem muitas flores coloridas.",
+      "translation": "The garden has many colorful flowers.",
+      "tags": ["nature", "colors", "quantities"]
+    },
+    {
+      "text": "Nós vamos ao cinema no sábado.",
+      "translation": "We are going to the movies on Saturday.",
+      "tags": ["entertainment", "plans", "days of week"]
+    },
+    {
+      "text": "O telefone está tocando agora.",
+      "translation": "The phone is ringing now.",
+      "tags": ["technology", "present continuous", "objects"]
+    },
+    {
+      "text": "Ela usa óculos para ler livros.",
+      "translation": "She wears glasses to read books.",
+      "tags": ["accessories", "reading", "activities"]
+    },
+    {
+      "text": "O café da manhã está na mesa.",
+      "translation": "Breakfast is on the table.",
+      "tags": ["meals", "locations", "food"]
+    },
+    {
+      "text": "Meu pai trabalha em um hospital.",
+      "translation": "My father works in a hospital.",
+      "tags": ["family", "professions", "locations"]
+    },
+    {
+      "text": "A televisão está ligada.",
+      "translation": "The television is on.",
+      "tags": ["technology", "states", "home"]
+    },
+    {
+      "text": "Os pássaros cantam pela manhã.",
+      "translation": "The birds sing in the morning.",
+      "tags": ["animals", "time", "nature"]
+    },
+    {
+      "text": "Ela gosta de sorvete de chocolate.",
+      "translation": "She likes chocolate ice cream.",
+      "tags": ["food", "preferences", "desserts"]
+    },
+    {
+      "text": "O ônibus está atrasado hoje.",
+      "translation": "The bus is late today.",
+      "tags": ["transportation", "time", "daily life"]
+    },
+    {
+      "text": "A porta está fechada.",
+      "translation": "The door is closed.",
+      "tags": ["objects", "states", "home"]
+    },
+    {
+      "text": "Minha casa é pequena mas confortável.",
+      "translation": "My house is small but comfortable.",
+      "tags": ["housing", "adjectives", "descriptions"]
+    },
+    {
+      "text": "O sol está brilhando hoje.",
+      "translation": "The sun is shining today.",
+      "tags": ["weather", "present continuous", "nature"]
+    },
+    {
+      "text": "Meu cachorro gosta de brincar no parque.",
+      "translation": "My dog likes to play in the park.",
+      "tags": ["pets", "activities", "locations"]
+    },
+    {
+      "text": "A biblioteca abre às nove horas.",
+      "translation": "The library opens at nine o'clock.",
+      "tags": ["time", "places", "schedule"]
+    },
+    {
+      "text": "Ela comprou um vestido novo.",
+      "translation": "She bought a new dress.",
+      "tags": ["shopping", "clothing", "past tense"]
+    },
+    {
+      "text": "O mercado fica perto da escola.",
+      "translation": "The market is near the school.",
+      "tags": ["locations", "directions", "places"]
+    },
+    {
+      "text": "Nós gostamos de música brasileira.",
+      "translation": "We like Brazilian music.",
+      "tags": ["music", "preferences", "culture"]
+    },
+    {
+      "text": "A janela está aberta.",
+      "translation": "The window is open.",
+      "tags": ["house", "states", "objects"]
+    },
+    {
+      "text": "Minha mãe faz um bolo delicioso.",
+      "translation": "My mother makes a delicious cake.",
+      "tags": ["family", "food", "cooking"]
+    },
+    {
+      "text": "O trem chega em cinco minutos.",
+      "translation": "The train arrives in five minutes.",
+      "tags": ["transportation", "time", "schedule"]
+    },
+    {
+      "text": "Eu tenho três irmãos.",
+      "translation": "I have three brothers.",
+      "tags": ["family", "numbers", "relationships"]
+    }
+  ],
+  "intermediate": [
+    {
+      "text": "Ontem à noite, decidimos jantar em um restaurante novo no centro da cidade.",
+      "translation": "Last night, we decided to have dinner at a new restaurant downtown.",
+      "tags": ["past tense", "food", "city life"]
+    },
+    {
+      "text": "O professor explicou a lição de história enquanto os alunos tomavam notas.",
+      "translation": "The teacher explained the history lesson while the students took notes.",
+      "tags": ["education", "continuous tense", "classroom"]
+    },
+    {
+      "text": "Durante as férias, vamos viajar para Portugal e conhecer novos lugares.",
+      "translation": "During the vacation, we will travel to Portugal and visit new places.",
+      "tags": ["future tense", "travel", "plans"]
+    },
+    {
+      "text": "Ela estava lendo um livro interessante quando o telefone tocou.",
+      "translation": "She was reading an interesting book when the phone rang.",
+      "tags": ["past continuous", "activities", "interruption"]
+    },
+    {
+      "text": "Precisamos comprar ingredientes frescos para fazer o jantar de hoje.",
+      "translation": "We need to buy fresh ingredients to make dinner tonight.",
+      "tags": ["shopping", "food", "planning"]
+    },
+    {
+      "text": "O filme que vimos ontem ganhou vários prêmios internacionais.",
+      "translation": "The movie we watched yesterday won several international awards.",
+      "tags": ["entertainment", "past tense", "relative clauses"]
+    },
+    {
+      "text": "Depois de terminar o trabalho, vou encontrar meus amigos no café.",
+      "translation": "After finishing work, I will meet my friends at the café.",
+      "tags": ["future plans", "social life", "time expressions"]
+    },
+    {
+      "text": "A música portuguesa tem influências de várias culturas diferentes.",
+      "translation": "Portuguese music has influences from various different cultures.",
+      "tags": ["culture", "present tense", "descriptions"]
+    },
+    {
+      "text": "Ele tem estudado português há dois anos e já fala muito bem.",
+      "translation": "He has been studying Portuguese for two years and already speaks very well.",
+      "tags": ["present perfect continuous", "language learning", "time expressions"]
+    },
+    {
+      "text": "Quando chegamos ao restaurante, não havia mais mesas disponíveis.",
+      "translation": "When we arrived at the restaurant, there were no more tables available.",
+      "tags": ["past tense", "negation", "situations"]
+    },
+    {
+      "text": "Enquanto ela cozinhava, ele arrumava a mesa.",
+      "translation": "While she was cooking, he was setting the table.",
+      "tags": ["simultaneous actions", "past continuous", "household"]
+    },
+    {
+      "text": "Se não chover amanhã, iremos à praia.",
+      "translation": "If it doesn't rain tomorrow, we will go to the beach.",
+      "tags": ["conditional", "weather", "future plans"]
+    },
+    {
+      "text": "O médico recomendou que eu fizesse mais exercícios.",
+      "translation": "The doctor recommended that I do more exercise.",
+      "tags": ["health", "subjunctive", "advice"]
+    },
+    {
+      "text": "Antes de sair, verifique se todas as luzes estão apagadas.",
+      "translation": "Before leaving, check if all the lights are turned off.",
+      "tags": ["instructions", "household", "safety"]
+    },
+    {
+      "text": "Ela tem estudado muito para passar no exame.",
+      "translation": "She has been studying a lot to pass the exam.",
+      "tags": ["present perfect continuous", "education", "goals"]
+    },
+    {
+      "text": "O filme que vimos ontem foi premiado internacionalmente.",
+      "translation": "The movie we watched yesterday was internationally awarded.",
+      "tags": ["entertainment", "past tense", "relative clauses"]
+    },
+    {
+      "text": "Quanto mais leio, mais aprendo.",
+      "translation": "The more I read, the more I learn.",
+      "tags": ["comparisons", "education", "habits"]
+    },
+    {
+      "text": "Assim que terminar o trabalho, vou te ligar.",
+      "translation": "As soon as I finish work, I'll call you.",
+      "tags": ["future", "time expressions", "communication"]
+    },
+    {
+      "text": "O restaurante onde jantamos estava lotado.",
+      "translation": "The restaurant where we had dinner was packed.",
+      "tags": ["past tense", "locations", "dining"]
+    },
+    {
+      "text": "Ela pediu que guardássemos silêncio durante a apresentação.",
+      "translation": "She asked that we keep quiet during the presentation.",
+      "tags": ["reported speech", "subjunctive", "requests"]
+    },
+    {
+      "text": "Apesar da chuva forte, a festa continuou.",
+      "translation": "Despite the heavy rain, the party continued.",
+      "tags": ["weather", "events", "conjunctions"]
+    },
+    {
+      "text": "Quando eu era criança, morava numa fazenda.",
+      "translation": "When I was a child, I lived on a farm.",
+      "tags": ["past tense", "childhood", "locations"]
+    },
+    {
+      "text": "Ele sugeriu que começássemos o projeto amanhã.",
+      "translation": "He suggested that we start the project tomorrow.",
+      "tags": ["subjunctive", "work", "suggestions"]
+    },
+    {
+      "text": "A reunião foi cancelada devido ao mau tempo.",
+      "translation": "The meeting was cancelled due to bad weather.",
+      "tags": ["passive voice", "business", "weather"]
+    },
+    {
+      "text": "Depois de terminar a faculdade, pretendo viajar pelo mundo.",
+      "translation": "After finishing college, I intend to travel around the world.",
+      "tags": ["future plans", "education", "travel"]
+    },
+    {
+      "text": "O livro que estou lendo foi escrito no século XIX.",
+      "translation": "The book I'm reading was written in the 19th century.",
+      "tags": ["literature", "relative clauses", "history"]
+    },
+    {
+      "text": "Quanto mais cedo chegarmos, melhor será nossa posição na fila.",
+      "translation": "The earlier we arrive, the better our position in line will be.",
+      "tags": ["comparisons", "time", "conditions"]
+    },
+    {
+      "text": "Ela tem trabalhado remotamente desde o início da pandemia.",
+      "translation": "She has been working remotely since the beginning of the pandemic.",
+      "tags": ["present perfect continuous", "work", "health"]
+    }
+  ],
+  "advanced": [
+    {
+      "text": "Embora tivesse estudado bastante, ainda sentia-se inseguro sobre o exame.",
+      "translation": "Although he had studied a lot, he still felt insecure about the exam.",
+      "tags": ["subjunctive", "feelings", "education"]
+    },
+    {
+      "text": "Se eu pudesse voltar no tempo, teria feito escolhas diferentes na minha carreira.",
+      "translation": "If I could go back in time, I would have made different choices in my career.",
+      "tags": ["conditional", "past perfect", "reflection"]
+    },
+    {
+      "text": "À medida que a tecnologia avança, precisamos adaptar-nos às mudanças constantes.",
+      "translation": "As technology advances, we need to adapt to constant changes.",
+      "tags": ["present tense", "technology", "society"]
+    },
+    {
+      "text": "Caso não tivéssemos perdido o comboio, teríamos chegado a tempo para a reunião.",
+      "translation": "If we hadn't missed the train, we would have arrived in time for the meeting.",
+      "tags": ["conditional perfect", "transportation", "time management"]
+    },
+    {
+      "text": "Por mais que tentasse explicar, ninguém parecia compreender a complexidade da situação.",
+      "translation": "No matter how much he tried to explain, nobody seemed to understand the complexity of the situation.",
+      "tags": ["subjunctive", "communication", "frustration"]
+    },
+    {
+      "text": "O livro cuja autora ganhou o Prêmio Nobel aborda questões sociais contemporâneas.",
+      "translation": "The book whose author won the Nobel Prize addresses contemporary social issues.",
+      "tags": ["relative pronouns", "literature", "society"]
+    },
+    {
+      "text": "Tendo terminado o projeto antes do prazo, a equipe pôde dedicar-se a novas iniciativas.",
+      "translation": "Having finished the project before the deadline, the team was able to dedicate themselves to new initiatives.",
+      "tags": ["perfect participle", "work", "achievement"]
+    },
+    {
+      "text": "Ainda que houvesse obstáculos, ela persistiu em seus objetivos até alcançá-los.",
+      "translation": "Even though there were obstacles, she persisted in her objectives until achieving them.",
+      "tags": ["subjunctive", "persistence", "goals"]
+    },
+    {
+      "text": "O fenômeno cultural que se observa atualmente reflete as transformações sociais das últimas décadas.",
+      "translation": "The cultural phenomenon that is currently observed reflects the social transformations of recent decades.",
+      "tags": ["passive voice", "culture", "society"]
+    },
+    {
+      "text": "Mal sabia ele que aquela decisão aparentemente insignificante mudaria completamente o rumo de sua vida.",
+      "translation": "Little did he know that that seemingly insignificant decision would completely change the course of his life.",
+      "tags": ["narrative", "reflection", "life changes"]
+    },
+    {
+      "text": "Os investigadores, cujo trabalho revolucionou a medicina moderna, receberam reconhecimento internacional.",
+      "translation": "The researchers, whose work revolutionized modern medicine, received international recognition.",
+      "tags": ["relative clauses", "science", "achievement"]
+    },
+    {
+      "text": "Conforme avançamos na era digital, torna-se imperativo questionar o impacto da tecnologia na privacidade.",
+      "translation": "As we advance in the digital age, it becomes imperative to question the impact of technology on privacy.",
+      "tags": ["formal language", "technology", "society"]
+    },
+    {
+      "text": "À medida que a sociedade evolui, novos desafios éticos surgem no campo da inteligência artificial.",
+      "translation": "As society evolves, new ethical challenges emerge in the field of artificial intelligence.",
+      "tags": ["technology", "society", "ethics"]
+    },
+    {
+      "text": "Não obstante as dificuldades encontradas, a equipe conseguiu superar as expectativas iniciais.",
+      "translation": "Notwithstanding the difficulties encountered, the team managed to exceed initial expectations.",
+      "tags": ["formal language", "business", "achievement"]
+    },
+    {
+      "text": "O paradigma atual de consumo exige uma reflexão profunda sobre sustentabilidade.",
+      "translation": "The current consumption paradigm demands a deep reflection on sustainability.",
+      "tags": ["environment", "society", "formal language"]
+    },
+    {
+      "text": "Caso tivéssemos previsto a magnitude do projeto, teríamos alocado mais recursos.",
+      "translation": "Had we predicted the magnitude of the project, we would have allocated more resources.",
+      "tags": ["conditional perfect", "business", "planning"]
+    },
+    {
+      "text": "A obra literária, cuja narrativa transcende o tempo, aborda questões universais da existência humana.",
+      "translation": "The literary work, whose narrative transcends time, addresses universal questions of human existence.",
+      "tags": ["literature", "philosophy", "relative pronouns"]
+    },
+    {
+      "text": "Em face das mudanças climáticas, torna-se imperativo repensar nossos padrões de produção.",
+      "translation": "In light of climate change, it becomes imperative to rethink our production patterns.",
+      "tags": ["environment", "formal language", "society"]
+    },
+    {
+      "text": "O estudo longitudinal, realizado ao longo de uma década, revelou padrões significativos de comportamento social.",
+      "translation": "The longitudinal study, conducted over a decade, revealed significant patterns of social behavior.",
+      "tags": ["science", "research", "formal language"]
+    },
+    {
+      "text": "Embora a tecnologia facilite a comunicação, paradoxalmente pode criar barreiras nas relações interpessoais.",
+      "translation": "Although technology facilitates communication, it can paradoxically create barriers in interpersonal relationships.",
+      "tags": ["technology", "society", "paradox"]
+    },
+    {
+      "text": "A implementação das novas políticas públicas requer uma análise minuciosa dos impactos socioeconômicos.",
+      "translation": "The implementation of new public policies requires a thorough analysis of socioeconomic impacts.",
+      "tags": ["politics", "society", "formal language"]
+    },
+    {
+      "text": "O fenômeno observado contradiz as teorias previamente estabelecidas no campo da física quântica.",
+      "translation": "The observed phenomenon contradicts previously established theories in the field of quantum physics.",
+      "tags": ["science", "academic", "formal language"]
+    },
+    {
+      "text": "À luz dos recentes acontecimentos, faz-se necessária uma reavaliação das estratégias adotadas.",
+      "translation": "In light of recent events, a reassessment of adopted strategies becomes necessary.",
+      "tags": ["business", "formal language", "planning"]
+    },
+    {
+      "text": "A interdisciplinaridade do projeto proporciona uma visão holística dos desafios contemporâneos.",
+      "translation": "The project's interdisciplinarity provides a holistic view of contemporary challenges.",
+      "tags": ["academic", "research", "formal language"]
+    },
+    {
+      "text": "O manuscrito, cuja autenticidade foi recentemente comprovada, revela aspectos inéditos da história medieval.",
+      "translation": "The manuscript, whose authenticity was recently proven, reveals unprecedented aspects of medieval history.",
+      "tags": ["history", "research", "relative pronouns"]
+    },
+    {
+      "text": "As transformações geopolíticas do século XXI exigem uma reconfiguração das relações internacionais.",
+      "translation": "The geopolitical transformations of the 21st century require a reconfiguration of international relations.",
+      "tags": ["politics", "society", "formal language"]
+    }
+  ]
+} 

@@ -4,24 +4,16 @@ import type { AppProps } from 'next/app';
 import NavigationBar from '../components/NavBar';
 import Footer from '../components/Footer';
 import Head from 'next/head';
-import { useRouter } from 'next/router';
-import MaintenancePage from '../components/MaintenancePage';
 
-// Set this to true to enable maintenance mode
-const MAINTENANCE_MODE = false;
+// Extend pageProps to include our layout flags
+interface CustomPageProps {
+  hideNav?: boolean;
+  hideFooter?: boolean;
+}
 
-function MyApp({ Component, pageProps }: AppProps) {
-  const router = useRouter();
+function MyApp({ Component, pageProps }: AppProps<CustomPageProps>) {
   const [isPrivateAccess, setIsPrivateAccess] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-
-  const isLivestreamPage = router.pathname === '/radio' || 
-                          router.pathname === '/liveprices' || 
-                          router.pathname === '/ethprices' || 
-                          router.pathname === '/plsprices' || 
-                          router.pathname === '/pdaiprices' || 
-                          router.pathname === '/wbtcprices' ||
-                          router.pathname === '/hero';
 
   useEffect(() => {
     setIsMounted(true);
@@ -31,19 +23,6 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   if (!isMounted) {
     return null;
-  }
-
-  // Show maintenance page only if maintenance mode is on AND we're not on private subdomain
-  if (MAINTENANCE_MODE && !isPrivateAccess) {
-    return (
-      <>
-        <Head>
-          <title>Maintenance - LookIntoMaxi Ⓜ️🛡️🍀🎲🟠</title>
-          <meta name="description" content="Site is currently under maintenance." />
-        </Head>
-        <MaintenancePage />
-      </>
-    );
   }
 
   return (
@@ -58,11 +37,11 @@ function MyApp({ Component, pageProps }: AppProps) {
           </>
         )}
       </Head>
-      {!isLivestreamPage && <NavigationBar />}
+      {!pageProps.hideNav && <NavigationBar />}
       <div className="App">
         <Component {...pageProps} />
       </div>
-      {!isLivestreamPage && <Footer/>}
+      {!pageProps.hideFooter && <Footer/>}
     </div>
   );
 }
