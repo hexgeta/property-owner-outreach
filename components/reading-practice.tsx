@@ -40,10 +40,30 @@ interface AudioCache {
   };
 }
 
-const client = new OpenAI({
-  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY || '',
-  dangerouslyAllowBrowser: true
-});
+// Update the OpenAI client initialization
+const getOpenAIClient = () => {
+  const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('OpenAI API key is not configured');
+  }
+  return new OpenAI({
+    apiKey,
+    dangerouslyAllowBrowser: true
+  });
+};
+
+// Create the client
+let client: OpenAI;
+try {
+  client = getOpenAIClient();
+} catch (error) {
+  console.error('Failed to initialize OpenAI client:', error);
+  // Provide a dummy client that will throw errors when used
+  client = new OpenAI({
+    apiKey: 'dummy',
+    dangerouslyAllowBrowser: true
+  });
+}
 
 // Add default topics array
 const DEFAULT_TOPICS = [
@@ -107,8 +127,8 @@ const ReadingPractice: React.FC = () => {
 
   // Update the checkApiKey function
   const checkApiKey = () => {
-    if (!process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY === '') {
-      throw new Error('OpenAI API key is not configured. Please add NEXT_PUBLIC_OPENAI_API_KEY to your environment variables.');
+    if (!process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
+      throw new Error('OpenAI API key is not configured. Please add NEXT_PUBLIC_OPENAI_API_KEY to your environment variables and restart the application.');
     }
   };
 
@@ -434,9 +454,10 @@ You must respond with a JSON array of objects in this exact format:
     return () => window.removeEventListener('resize', handleResize);
   }, [sentences.length]);
 
-  // Update the getAudioFromOpenAI function
+  // Update the getAudioFromOpenAI function with better error handling
   const getAudioFromOpenAI = async (text: string) => {
     try {
+      checkApiKey();
       // Add explicit instruction for European Portuguese
       const prompt = `Speak this in European Portuguese: ${text}`;
       
@@ -448,6 +469,10 @@ You must respond with a JSON array of objects in this exact format:
         speed: 1.0
       });
 
+      if (!response) {
+        throw new Error('No response from OpenAI API');
+      }
+
       const arrayBuffer = await response.arrayBuffer();
       const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
@@ -455,7 +480,13 @@ You must respond with a JSON array of objects in this exact format:
     } catch (error) {
       console.error('Error generating speech:', error);
       if (error instanceof Error) {
-        alert(`Failed to generate audio: ${error.message}`);
+        if (error.message.includes('401')) {
+          alert('Invalid API key. Please check your OpenAI API key configuration.');
+        } else if (error.message.includes('404')) {
+          alert('API endpoint not found. Please check your OpenAI API configuration.');
+        } else {
+          alert(`Failed to generate audio: ${error.message}`);
+        }
       }
       return null;
     }
