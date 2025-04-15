@@ -24,8 +24,20 @@ interface Sentence {
 
 type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
 
+interface WordTiming {
+  word: string;
+  start: number;
+  end: number;
+}
+
 interface AudioCache {
-  sentences: { [key: number]: { audio: HTMLAudioElement; text: string } };
+  sentences: { 
+    [key: number]: { 
+      audio: HTMLAudioElement; 
+      text: string;
+      wordTimings?: WordTiming[];
+    } 
+  };
 }
 
 const client = new OpenAI({
@@ -46,6 +58,23 @@ const DEFAULT_TOPICS = [
   'sports',
   'entertainment'
 ];
+
+const estimateWordTimings = (words: string[], totalDuration: number): WordTiming[] => {
+  const totalCharacters = words.join(' ').length;
+  let currentTime = 0;
+  
+  return words.map((word, index) => {
+    // Estimate duration based on word length relative to total text length
+    const duration = (word.length / totalCharacters) * totalDuration;
+    const timing = {
+      word,
+      start: currentTime,
+      end: currentTime + duration
+    };
+    currentTime += duration;
+    return timing;
+  });
+};
 
 const ReadingPractice: React.FC = () => {
   const [sentences, setSentences] = useState<SentenceState[]>([]);
@@ -68,6 +97,7 @@ const ReadingPractice: React.FC = () => {
   const [topic, setTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSentences, setGeneratedSentences] = useState<Sentence[]>([]);
+  const [loadingWords, setLoadingWords] = useState<{[key: string]: boolean}>({});
 
   // Function to get a random topic
   const getRandomTopic = () => {
@@ -75,9 +105,9 @@ const ReadingPractice: React.FC = () => {
     return DEFAULT_TOPICS[randomIndex];
   };
 
-  // Add error handling for missing API key
+  // Update the checkApiKey function
   const checkApiKey = () => {
-    if (!process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
+    if (!process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY === '') {
       throw new Error('OpenAI API key is not configured. Please add NEXT_PUBLIC_OPENAI_API_KEY to your environment variables.');
     }
   };
@@ -188,7 +218,10 @@ You must respond with a JSON array of objects in this exact format:
         }));
         setSentences(formattedSentences);
         setPage(1);
-        setTopic('');
+        // Only clear topic if it was empty and we used a random one
+        if (!topic.trim()) {
+          setTopic('');
+        }
       } else {
         throw new Error('Invalid response format from API');
       }
@@ -207,8 +240,7 @@ You must respond with a JSON array of objects in this exact format:
     setIsGenerating(true);
     try {
       checkApiKey();
-      const randomTopic = getRandomTopic();
-      setTopic(randomTopic);
+      const currentTopic = topic.trim() || getRandomTopic();
       const response = await client.chat.completions.create({
         model: "gpt-3.5-turbo",
         messages: [
@@ -218,7 +250,7 @@ You must respond with a JSON array of objects in this exact format:
           },
           {
             role: "user",
-            content: getDifficultyPrompt(level, randomTopic)
+            content: getDifficultyPrompt(level, currentTopic)
           }
         ],
         temperature: 0.7,
@@ -278,7 +310,7 @@ You must respond with a JSON array of objects in this exact format:
           setIsGenerating(true);
           try {
             checkApiKey();
-            const randomTopic = getRandomTopic();
+            const currentTopic = topic.trim() || getRandomTopic();
             const response = await client.chat.completions.create({
               model: "gpt-3.5-turbo",
               messages: [
@@ -288,7 +320,7 @@ You must respond with a JSON array of objects in this exact format:
                 },
                 {
                   role: "user",
-                  content: getDifficultyPrompt(difficultyLevel, randomTopic)
+                  content: getDifficultyPrompt(difficultyLevel, currentTopic)
                 }
               ],
               temperature: 0.7,
@@ -405,10 +437,15 @@ You must respond with a JSON array of objects in this exact format:
   // Update the getAudioFromOpenAI function
   const getAudioFromOpenAI = async (text: string) => {
     try {
+      // Add explicit instruction for European Portuguese
+      const prompt = `Speak this in European Portuguese: ${text}`;
+      
       const response = await client.audio.speech.create({
         model: "tts-1",
         voice: "nova",
-        input: text,
+        input: prompt,
+        response_format: "mp3",
+        speed: 1.0
       });
 
       const arrayBuffer = await response.arrayBuffer();
@@ -417,6 +454,9 @@ You must respond with a JSON array of objects in this exact format:
       return url;
     } catch (error) {
       console.error('Error generating speech:', error);
+      if (error instanceof Error) {
+        alert(`Failed to generate audio: ${error.message}`);
+      }
       return null;
     }
   };
@@ -426,18 +466,43 @@ You must respond with a JSON array of objects in this exact format:
     const speeds = {
       slow: 0.7,
       normal: 1,
-      fast: 1.3
+      fast: 1
     };
     
     audio.playbackRate = speeds[speed];
     await audio.play();
   };
 
-  // Update the preloadSentenceAudio function
+  // Add cleanup effect
+  useEffect(() => {
+    return () => {
+      // Clean up all audio elements and object URLs
+      Object.values(audioCache.current.sentences).forEach(({ audio }) => {
+        if (audio) {
+          audio.pause();
+          audio.src = '';
+          audio.load();
+        }
+      });
+      // Reset the audio cache
+      audioCache.current = { sentences: {} };
+    };
+  }, []);
+
+  // Update the preloadSentenceAudio function to clean up old audio
   const preloadSentenceAudio = async (sentence: SentenceState) => {
     try {
       setIsLoadingAudio(true);
       const fullText = sentence.words.map(w => w.text).join(' ');
+      
+      // Clean up old audio if it exists
+      if (audioCache.current.sentences[sentence.id]) {
+        const oldAudio = audioCache.current.sentences[sentence.id].audio;
+        oldAudio.pause();
+        oldAudio.src = '';
+        oldAudio.load();
+        delete audioCache.current.sentences[sentence.id];
+      }
       
       // Load full sentence audio if not cached
       if (!audioCache.current.sentences[sentence.id] || 
@@ -487,50 +552,132 @@ You must respond with a JSON array of objects in this exact format:
       
       if (cached && cached.text === fullText) {
         cached.audio.currentTime = 0;
-        await playAudioAtSpeed(cached.audio, speed);
         
-        // Highlight all words
-        setSentences(prev => prev.map(s => {
-          if (s.id !== sentenceId) return s;
-          return {
-            ...s,
-            highlightedIndex: s.words.length - 1,
-            words: s.words.map(word => ({
-              ...word,
-              isHighlighted: true
-            }))
-          };
-        }));
+        // Reset word highlighting
+        setSentences(prev => prev.map(s => ({
+          ...s,
+          words: s.words.map(word => ({ ...word, isHighlighted: false }))
+        })));
+
+        // Set up progress tracking
+        const updateProgress = () => {
+          const currentTime = cached.audio.currentTime;
+          const totalDuration = cached.audio.duration;
+          
+          if (!cached.wordTimings) {
+            cached.wordTimings = estimateWordTimings(sentence.words.map(w => w.text), totalDuration);
+          }
+          
+          // Find which words should be highlighted based on current time
+          const highlightedWords = cached.wordTimings.map((timing) => {
+            const adjustedTime = currentTime * (speed === 'slow' ? 0.7 : 1);
+            return adjustedTime >= timing.start;
+          });
+          
+          setSentences(prev => prev.map(s => {
+            if (s.id !== sentenceId) return s;
+            return {
+              ...s,
+              words: s.words.map((word, idx) => ({
+                ...word,
+                isHighlighted: highlightedWords[idx]
+              }))
+            };
+          }));
+        };
+
+        // Add event listeners for tracking progress
+        cached.audio.addEventListener('timeupdate', updateProgress);
+        cached.audio.addEventListener('ended', () => {
+          setIsPlaying(false);
+          cached.audio.removeEventListener('timeupdate', updateProgress);
+        });
+
+        await playAudioAtSpeed(cached.audio, speed);
       } else {
         const audioUrl = await getAudioFromOpenAI(fullText);
         if (audioUrl) {
           const newAudio = new Audio(audioUrl);
           await newAudio.load();
+          
+          // Reset word highlighting
+          setSentences(prev => prev.map(s => ({
+            ...s,
+            words: s.words.map(word => ({ ...word, isHighlighted: false }))
+          })));
+
           audioCache.current.sentences[sentenceId] = {
             audio: newAudio,
             text: fullText
           };
-          
+
+          // Set up progress tracking
+          const updateProgress = () => {
+            const currentTime = newAudio.currentTime;
+            const totalDuration = newAudio.duration;
+            
+            if (!audioCache.current.sentences[sentenceId].wordTimings) {
+              audioCache.current.sentences[sentenceId].wordTimings = 
+                estimateWordTimings(sentence.words.map(w => w.text), totalDuration);
+            }
+            
+            // Find which words should be highlighted based on current time
+            const timings = audioCache.current.sentences[sentenceId].wordTimings!;
+            const highlightedWords = timings.map((timing) => {
+              const adjustedTime = currentTime * (speed === 'slow' ? 0.7 : 1);
+              return adjustedTime >= timing.start;
+            });
+            
+            setSentences(prev => prev.map(s => {
+              if (s.id !== sentenceId) return s;
+              return {
+                ...s,
+                words: s.words.map((word, idx) => ({
+                  ...word,
+                  isHighlighted: highlightedWords[idx]
+                }))
+              };
+            }));
+          };
+
+          // Add event listeners for tracking progress
+          newAudio.addEventListener('timeupdate', updateProgress);
+          newAudio.addEventListener('ended', () => {
+            setIsPlaying(false);
+            newAudio.removeEventListener('timeupdate', updateProgress);
+          });
+
           await playAudioAtSpeed(newAudio, speed);
-          
-          // Highlight all words
-          setSentences(prev => prev.map(s => {
-            if (s.id !== sentenceId) return s;
-            return {
-              ...s,
-              highlightedIndex: s.words.length - 1,
-              words: s.words.map(word => ({
-                ...word,
-                isHighlighted: true
-              }))
-            };
-          }));
         }
       }
     } catch (error) {
       console.error('Error speaking sentence:', error);
     } finally {
       setIsPlaying(false);
+    }
+  };
+
+  // Update the speakWord function
+  const speakWord = async (word: string, sentenceId: number, wordIndex: number) => {
+    const wordKey = `${sentenceId}-${wordIndex}`;
+    try {
+      setLoadingWords(prev => ({ ...prev, [wordKey]: true }));
+      const audioUrl = await getAudioFromOpenAI(word);
+      if (audioUrl) {
+        const audio = new Audio(audioUrl);
+        audio.onerror = (e) => {
+          console.error('Error playing word audio:', e);
+          URL.revokeObjectURL(audioUrl);
+        };
+        await audio.play();
+        audio.addEventListener('ended', () => {
+          URL.revokeObjectURL(audioUrl);
+        });
+      }
+    } catch (error) {
+      console.error('Error speaking word:', error);
+    } finally {
+      setLoadingWords(prev => ({ ...prev, [wordKey]: false }));
     }
   };
 
@@ -568,17 +715,26 @@ You must respond with a JSON array of objects in this exact format:
                     {sentence.words.map((word, index) => (
                       <span
                         key={index}
-                        className={`inline-block transition-colors duration-150 select-none
+                        onClick={() => speakWord(word.text, sentence.id, index)}
+                        className={`inline-block transition-colors duration-150 select-none cursor-pointer relative
                           ${word.isHighlighted 
                             ? 'text-blue-600 dark:text-blue-400' 
                             : 'text-gray-600 dark:text-gray-400'
-                          }`}
+                          }
+                          hover:text-blue-500 dark:hover:text-blue-300`}
                         style={{ 
                           marginRight: index < sentence.words.length - 1 ? '0.5em' : 0,
                           padding: '0.1em 0',
                         }}
+                        title="Click to hear this word"
                       >
                         {word.text}
+                        {loadingWords[`${sentence.id}-${index}`] && (
+                          <div className="absolute -top-1 -right-1 w-2 h-2">
+                            <div className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></div>
+                            <div className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></div>
+                          </div>
+                        )}
                       </span>
                     ))}
                   </div>
