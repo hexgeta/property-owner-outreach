@@ -33,44 +33,18 @@ const client = new OpenAI({
   dangerouslyAllowBrowser: true
 });
 
-// Add topic buttons interface and data
-interface TopicButton {
-  name: string;
-  icon: string;
-  color: string;
-}
-
-const TOPIC_BUTTONS: TopicButton[] = [
-  {
-    name: 'Family',
-    icon: 'M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z',
-    color: 'from-pink-500 to-rose-500'
-  },
-  {
-    name: 'Travel',
-    icon: 'M20.43 5.76a8.18 8.18 0 00-.86-1.87 4.12 4.12 0 00-3.06-1.89c-1.28-.09-2.57-.05-3.85 0H12c-1.28-.05-2.57-.09-3.85 0a4.12 4.12 0 00-3.06 1.89 8.18 8.18 0 00-.86 1.87c-.14.4-.23.81-.28 1.23-.09.75-.1 1.5-.1 2.25v1.1c0 .75.01 1.5.1 2.25.05.42.14.83.28 1.23.19.66.48 1.29.86 1.87a4.12 4.12 0 003.06 1.89c1.28.09 2.57.05 3.85 0h.66c1.28.05 2.57.09 3.85 0a4.12 4.12 0 003.06-1.89c.38-.58.67-1.21.86-1.87.14-.4.23-.81.28-1.23.09-.75.1-1.5.1-2.25v-1.1c0-.75-.01-1.5-.1-2.25a5.92 5.92 0 00-.28-1.23z',
-    color: 'from-blue-500 to-cyan-500'
-  },
-  {
-    name: 'Food',
-    icon: 'M12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zM12 3a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V3.75A.75.75 0 0112 3zM7.5 15.75a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75zM8.25 17.25a.75.75 0 000 1.5h7.5a.75.75 0 000-1.5h-7.5zM9.75 15.75a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75zM12 15.75a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75zM15.75 15.75a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75z',
-    color: 'from-orange-500 to-amber-500'
-  },
-  {
-    name: 'Hobbies',
-    icon: 'M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 01-.657.643 48.39 48.39 0 01-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 01-.658.663v0c-.355 0-.676-.186-.959-.401a1.647 1.647 0 00-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 01-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 00.657-.643v0c0-.355-.186-.676-.401-.959a1.647 1.647 0 01-.349-1.003c0-1.035 1.008-1.875 2.25-1.875 1.243 0 2.25.84 2.25 1.875 0 .369-.128.713-.349 1.003-.215.283-.4.604-.4.959v0c0 .333.277.599.61.58a48.1 48.1 0 005.427-.63 48.05 48.05 0 00.582-4.717.532.532 0 00-.533-.57v0c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.035 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.37 0 .713.128 1.003.349.283.215.604.401.96.401v0a.656.656 0 00.658-.663 48.422 48.422 0 00-.37-5.36c-1.886.342-3.81.574-5.766.689a.578.578 0 01-.61-.58v0z',
-    color: 'from-green-500 to-emerald-500'
-  },
-  {
-    name: 'Work',
-    icon: 'M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z',
-    color: 'from-purple-500 to-indigo-500'
-  },
-  {
-    name: 'Weather',
-    icon: 'M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z',
-    color: 'from-yellow-500 to-orange-500'
-  }
+// Add default topics array
+const DEFAULT_TOPICS = [
+  'daily life',
+  'family',
+  'food',
+  'travel',
+  'hobbies',
+  'weather',
+  'work',
+  'education',
+  'sports',
+  'entertainment'
 ];
 
 const ReadingPractice: React.FC = () => {
@@ -95,20 +69,6 @@ const ReadingPractice: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSentences, setGeneratedSentences] = useState<Sentence[]>([]);
 
-  // Add default topics array
-  const DEFAULT_TOPICS = [
-    'daily life',
-    'family',
-    'food',
-    'travel',
-    'hobbies',
-    'weather',
-    'work',
-    'education',
-    'sports',
-    'entertainment'
-  ];
-
   // Function to get a random topic
   const getRandomTopic = () => {
     const randomIndex = Math.floor(Math.random() * DEFAULT_TOPICS.length);
@@ -125,27 +85,28 @@ const ReadingPractice: React.FC = () => {
   // Update the getDifficultyPrompt function
   const getDifficultyPrompt = (level: DifficultyLevel, topic: string) => {
     const formatInstructions = `
-Return ONLY a JSON array of objects with this exact format:
-[
-  {
-    "text": "Portuguese sentence here",
-    "translation": "English translation here"
-  }
-]
-Do not include any other text or explanation. The response must be valid parseable JSON.`;
+You must respond with a JSON array of objects in this exact format:
+{
+  "sentences": [
+    {
+      "text": "Portuguese sentence here",
+      "translation": "English translation here"
+    }
+  ]
+}`;
 
-    const basePrompt = `Generate 5 European Portuguese (pt-PT) sentences about "${topic}".`;
+    const basePrompt = `Generate 5 European Portuguese (pt-PT) sentences about "${topic}". Return them in JSON format.`;
     
     let difficultyPrompt = '';
     switch (level) {
       case 'beginner':
-        difficultyPrompt = `${basePrompt} Make the sentences very simple, using basic vocabulary and present tense only. Use short sentences with 5-8 words maximum. Example structure: "O gato é preto." (The cat is black)`;
+        difficultyPrompt = `${basePrompt} Make the sentences very simple, using basic vocabulary and present tense only. Use short sentences with 5-8 words maximum.`;
         break;
       case 'intermediate':
-        difficultyPrompt = `${basePrompt} Use moderate complexity with past tense and future tense. Include some common expressions and longer sentences. Example structure: "Ontem fui ao cinema com os meus amigos." (Yesterday I went to the cinema with my friends)`;
+        difficultyPrompt = `${basePrompt} Use moderate complexity with past tense and future tense. Include some common expressions and longer sentences.`;
         break;
       case 'advanced':
-        difficultyPrompt = `${basePrompt} Use complex sentence structures, subjunctive mood, and advanced vocabulary. Include idiomatic expressions and sophisticated grammar. Example structure: "Embora tivesse estudado bastante, não consegui passar no exame." (Although I had studied a lot, I couldn't pass the exam)`;
+        difficultyPrompt = `${basePrompt} Use complex sentence structures, subjunctive mood, and advanced vocabulary. Include idiomatic expressions and sophisticated grammar.`;
         break;
       default:
         difficultyPrompt = basePrompt;
@@ -184,7 +145,7 @@ Do not include any other text or explanation. The response must be valid parseab
         messages: [
           {
             role: "system",
-            content: "You are a Portuguese language teacher. You must respond with valid JSON only, no additional text or explanations."
+            content: "You are a Portuguese language teacher. You must respond with valid JSON only, following the exact format specified."
           },
           {
             role: "user",
@@ -192,7 +153,7 @@ Do not include any other text or explanation. The response must be valid parseab
           }
         ],
         temperature: 0.7,
-        response_format: { type: "json_object" }  // Force JSON response
+        response_format: { type: "json_object" }
       });
 
       const content = completion.choices[0]?.message?.content || '';
@@ -201,24 +162,20 @@ Do not include any other text or explanation. The response must be valid parseab
       let jsonContent;
       try {
         jsonContent = JSON.parse(content);
-        // If the response is wrapped in an object, extract the array
-        if (jsonContent && typeof jsonContent === 'object' && !Array.isArray(jsonContent)) {
-          jsonContent = Object.values(jsonContent)[0];
-        }
-        if (!Array.isArray(jsonContent)) {
-          throw new Error('Response is not an array');
+        if (!jsonContent.sentences || !Array.isArray(jsonContent.sentences)) {
+          throw new Error('Response does not contain sentences array');
         }
       } catch (parseError) {
         console.error('JSON parse error:', parseError);
         throw new Error('Failed to parse API response as JSON');
       }
 
-      console.log('Parsed sentences:', jsonContent);
+      console.log('Parsed sentences:', jsonContent.sentences);
       
-      if (Array.isArray(jsonContent) && jsonContent.every(item => 
+      if (jsonContent.sentences.every(item => 
         item && typeof item === 'object' && 'text' in item && 'translation' in item
       )) {
-        const formattedSentences = jsonContent.map((sentence, index) => ({
+        const formattedSentences = jsonContent.sentences.map((sentence, index) => ({
           id: index,
           words: sentence.text.split(' ').map(word => ({
             text: word,
@@ -257,7 +214,7 @@ Do not include any other text or explanation. The response must be valid parseab
         messages: [
           {
             role: "system",
-            content: "You are a Portuguese language teacher. You must respond with valid JSON only, no additional text or explanations."
+            content: "You are a Portuguese language teacher. You must respond with valid JSON only, following the exact format specified."
           },
           {
             role: "user",
@@ -265,7 +222,7 @@ Do not include any other text or explanation. The response must be valid parseab
           }
         ],
         temperature: 0.7,
-        response_format: { type: "json_object" }  // Force JSON response
+        response_format: { type: "json_object" }
       });
 
       const content = response.choices[0]?.message?.content || '';
@@ -274,24 +231,20 @@ Do not include any other text or explanation. The response must be valid parseab
       let jsonContent;
       try {
         jsonContent = JSON.parse(content);
-        // If the response is wrapped in an object, extract the array
-        if (jsonContent && typeof jsonContent === 'object' && !Array.isArray(jsonContent)) {
-          jsonContent = Object.values(jsonContent)[0];
-        }
-        if (!Array.isArray(jsonContent)) {
-          throw new Error('Response is not an array');
+        if (!jsonContent.sentences || !Array.isArray(jsonContent.sentences)) {
+          throw new Error('Response does not contain sentences array');
         }
       } catch (parseError) {
         console.error('JSON parse error:', parseError);
         throw new Error('Failed to parse API response as JSON');
       }
 
-      console.log('Parsed sentences:', jsonContent);
+      console.log('Parsed sentences:', jsonContent.sentences);
       
-      if (Array.isArray(jsonContent) && jsonContent.every(item => 
+      if (jsonContent.sentences.every(item => 
         item && typeof item === 'object' && 'text' in item && 'translation' in item
       )) {
-        const formattedSentences = jsonContent.map((sentence, index) => ({
+        const formattedSentences = jsonContent.sentences.map((sentence, index) => ({
           id: index,
           words: sentence.text.split(' ').map(word => ({
             text: word,
@@ -316,7 +269,7 @@ Do not include any other text or explanation. The response must be valid parseab
     }
   };
 
-  // Update the intersection observer to maintain font size
+  // Update the intersection observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       async (entries) => {
@@ -331,22 +284,38 @@ Do not include any other text or explanation. The response must be valid parseab
               messages: [
                 {
                   role: "system",
-                  content: "You are a Portuguese language teacher. Generate natural European Portuguese sentences with English translations based on the specified difficulty level."
+                  content: "You are a Portuguese language teacher. You must respond with valid JSON only, following the exact format specified."
                 },
                 {
                   role: "user",
                   content: getDifficultyPrompt(difficultyLevel, randomTopic)
                 }
               ],
-              temperature: 0.7
+              temperature: 0.7,
+              response_format: { type: "json_object" }
             });
 
             const content = response.choices[0]?.message?.content || '';
-            const jsonContent = JSON.parse(content);
+            console.log('Raw API response for more sentences:', content);
             
-            if (Array.isArray(jsonContent)) {
+            let jsonContent;
+            try {
+              jsonContent = JSON.parse(content);
+              if (!jsonContent.sentences || !Array.isArray(jsonContent.sentences)) {
+                throw new Error('Response does not contain sentences array');
+              }
+            } catch (parseError) {
+              console.error('JSON parse error:', parseError);
+              throw new Error('Failed to parse API response as JSON');
+            }
+
+            console.log('Parsed additional sentences:', jsonContent.sentences);
+            
+            if (jsonContent.sentences.every(item => 
+              item && typeof item === 'object' && 'text' in item && 'translation' in item
+            )) {
               const startIndex = sentences.length;
-              const formattedSentences = jsonContent.map((sentence, index) => ({
+              const formattedSentences = jsonContent.sentences.map((sentence, index) => ({
                 id: startIndex + index,
                 words: sentence.text.split(' ').map(word => ({
                   text: word,
@@ -355,8 +324,9 @@ Do not include any other text or explanation. The response must be valid parseab
                 translation: sentence.translation,
                 showTranslation: false,
                 highlightedIndex: -1,
-                fontSize: sentences[0]?.fontSize || 22, // Use the font size of the first sentence
+                fontSize: sentences[0]?.fontSize || 22,
               }));
+              
               setSentences(prev => [...prev, ...formattedSentences]);
               setPage(prev => prev + 1);
 
@@ -368,7 +338,7 @@ Do not include any other text or explanation. The response must be valid parseab
               }, 100);
             }
           } catch (error) {
-            console.error('Error generating more sentences:', error);
+            console.error('Error loading more sentences:', error);
           } finally {
             setIsGenerating(false);
           }
@@ -712,30 +682,6 @@ Do not include any other text or explanation. The response must be valid parseab
                 Advanced
               </button>
             </div>
-          </div>
-          
-          {/* Topic quick-select buttons */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-            {TOPIC_BUTTONS.map((topicBtn) => (
-              <button
-                key={topicBtn.name}
-                onClick={() => {
-                  setTopic(topicBtn.name.toLowerCase());
-                  generateSentences();
-                }}
-                className={`p-3 rounded-xl bg-gradient-to-r ${topicBtn.color} text-white hover:shadow-lg transition-all flex flex-col items-center gap-2 text-sm font-medium`}
-              >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  viewBox="0 0 24 24" 
-                  fill="currentColor" 
-                  className="w-5 h-5"
-                >
-                  <path d={topicBtn.icon} />
-                </svg>
-                {topicBtn.name}
-              </button>
-            ))}
           </div>
           
           {/* Topic input and generate button */}
