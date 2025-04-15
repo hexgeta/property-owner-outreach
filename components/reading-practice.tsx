@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import sentencesData from '@/data/sentences.json';
 import axios from 'axios';
+import OpenAI from "openai";
 
 interface Word {
   text: string;
@@ -14,6 +14,7 @@ interface SentenceState {
   showTranslation: boolean;
   highlightedIndex: number;
   fontSize: number;
+  sliderPosition: number;
 }
 
 interface Sentence {
@@ -23,6 +24,16 @@ interface Sentence {
 }
 
 type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
+
+interface AudioCache {
+  words: { [key: string]: { audio: HTMLAudioElement; text: string } };
+  sentences: { [key: number]: { audio: HTMLAudioElement; text: string } };
+}
+
+const client = new OpenAI({
+  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true
+});
 
 const ReadingPractice: React.FC = () => {
   const [sentences, setSentences] = useState<SentenceState[]>([]);
@@ -40,51 +51,227 @@ const ReadingPractice: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const wordQueueRef = useRef<{ sentenceId: number; words: string[] }>({ sentenceId: -1, words: [] });
   const isProcessingQueueRef = useRef(false);
-  const audioCache = useRef<{ [key: string]: HTMLAudioElement }>({});
+  const audioCache = useRef<AudioCache>({ words: {}, sentences: {} });
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const [topic, setTopic] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedSentences, setGeneratedSentences] = useState<Sentence[]>([]);
+
+  // Add default topics array
+  const DEFAULT_TOPICS = [
+    'daily life',
+    'family',
+    'food',
+    'travel',
+    'hobbies',
+    'weather',
+    'work',
+    'education',
+    'sports',
+    'entertainment'
+  ];
+
+  // Function to get a random topic
+  const getRandomTopic = () => {
+    const randomIndex = Math.floor(Math.random() * DEFAULT_TOPICS.length);
+    return DEFAULT_TOPICS[randomIndex];
+  };
+
+  // Update the prompts for different difficulty levels
+  const getDifficultyPrompt = (level: DifficultyLevel, topic: string) => {
+    const basePrompt = `Generate 5 European Portuguese (pt-PT) sentences about "${topic}". Format your response as a JSON array of objects, each with "text" (Portuguese) and "translation" (English) properties.`;
+    
+    switch (level) {
+      case 'beginner':
+        return `${basePrompt} Make the sentences very simple, using basic vocabulary and present tense only. Use short sentences with 5-8 words maximum. Example: "O gato é preto." (The cat is black)`;
+      case 'intermediate':
+        return `${basePrompt} Use moderate complexity with past tense and future tense. Include some common expressions and longer sentences. Example: "Ontem fui ao cinema com os meus amigos." (Yesterday I went to the cinema with my friends)`;
+      case 'advanced':
+        return `${basePrompt} Use complex sentence structures, subjunctive mood, and advanced vocabulary. Include idiomatic expressions and sophisticated grammar. Example: "Embora tivesse estudado bastante, não consegui passar no exame." (Although I had studied a lot, I couldn't pass the exam)`;
+      default: // 'ai' or fallback
+        return basePrompt;
+    }
+  };
 
   // Initialize sentences on mount and difficulty change
   useEffect(() => {
-    const initialSentences = sentencesData[difficultyLevel]
-      .slice(0, SENTENCES_PER_PAGE)
-      .map((sentence, index) => ({
-        id: index,
-        words: sentence.text.split(' ').map(word => ({
-          text: word,
-          isHighlighted: false
-        })),
-        translation: sentence.translation,
-        showTranslation: false,
-        highlightedIndex: -1,
-        fontSize: 36
-      }));
-    setSentences(initialSentences);
-    setPage(1);
-  }, [difficultyLevel]);
+    // Generate initial sentences for any difficulty level
+    const generateInitialSentences = async () => {
+      const randomTopic = getRandomTopic();
+      setTopic(randomTopic);
+      handleTabClick(difficultyLevel);
+    };
 
-  // Intersection Observer for infinite scroll
+    generateInitialSentences();
+  }, []); // Only run on mount
+
+  // Update the generateSentences function
+  const generateSentences = async () => {
+    if (!topic.trim()) {
+      const randomTopic = getRandomTopic();
+      setTopic(randomTopic);
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      console.log('Generating sentences for topic:', topic);
+      
+      const completion = await client.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are a Portuguese language teacher. Generate natural European Portuguese sentences with English translations based on the specified difficulty level."
+          },
+          {
+            role: "user",
+            content: getDifficultyPrompt(difficultyLevel, topic)
+          }
+        ],
+        temperature: 0.7
+      });
+
+      const content = completion.choices[0]?.message?.content || '';
+      const jsonContent = JSON.parse(content);
+      console.log('Parsed sentences:', jsonContent);
+      
+      if (Array.isArray(jsonContent)) {
+        const formattedSentences = jsonContent.map((sentence, index) => ({
+          id: index,
+          words: sentence.text.split(' ').map(word => ({
+            text: word,
+            isHighlighted: false
+          })),
+          translation: sentence.translation,
+          showTranslation: false,
+          highlightedIndex: -1,
+          fontSize: 22,
+          sliderPosition: 0
+        }));
+        setSentences(formattedSentences);
+        setPage(1);
+        setTopic('');
+      } else {
+        throw new Error('Invalid response format from API');
+      }
+    } catch (error) {
+      console.error('Error generating sentences:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to generate sentences: ${errorMessage}. Please try again.`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Update the handleTabClick function
+  const handleTabClick = async (level: DifficultyLevel) => {
+    setDifficultyLevel(level);
+    setIsGenerating(true);
+    try {
+      const randomTopic = getRandomTopic();
+      setTopic(randomTopic);
+      const response = await client.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are a Portuguese language teacher. Generate natural European Portuguese sentences with English translations based on the specified difficulty level."
+          },
+          {
+            role: "user",
+            content: getDifficultyPrompt(level, randomTopic)
+          }
+        ],
+        temperature: 0.7
+      });
+
+      const content = response.choices[0]?.message?.content || '';
+      const jsonContent = JSON.parse(content);
+      console.log('Parsed sentences:', jsonContent);
+      
+      if (Array.isArray(jsonContent)) {
+        const formattedSentences = jsonContent.map((sentence, index) => ({
+          id: index,
+          words: sentence.text.split(' ').map(word => ({
+            text: word,
+            isHighlighted: false
+          })),
+          translation: sentence.translation,
+          showTranslation: false,
+          highlightedIndex: -1,
+          fontSize: 22,
+          sliderPosition: 0
+        }));
+        setSentences(formattedSentences);
+        setPage(1);
+      } else {
+        throw new Error('Invalid response format from API');
+      }
+    } catch (error) {
+      console.error('Error generating random sentences:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to generate sentences: ${errorMessage}. Please try again.`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Update the intersection observer to maintain font size
   useEffect(() => {
     const observer = new IntersectionObserver(
-      (entries) => {
+      async (entries) => {
         const target = entries[0];
         if (target.isIntersecting) {
-          const nextSentences = sentencesData[difficultyLevel]
-            .slice(page * SENTENCES_PER_PAGE, (page + 1) * SENTENCES_PER_PAGE)
-            .map((sentence, index) => ({
-              id: page * SENTENCES_PER_PAGE + index,
-              words: sentence.text.split(' ').map(word => ({
-                text: word,
-                isHighlighted: false
-              })),
-              translation: sentence.translation,
-              showTranslation: false,
-              highlightedIndex: -1,
-              fontSize: 36
-            }));
-          
-          if (nextSentences.length > 0) {
-            setSentences(prev => [...prev, ...nextSentences]);
-            setPage(prev => prev + 1);
+          setIsGenerating(true);
+          try {
+            const randomTopic = getRandomTopic();
+            const response = await client.chat.completions.create({
+              model: "gpt-4",
+              messages: [
+                {
+                  role: "system",
+                  content: "You are a Portuguese language teacher. Generate natural European Portuguese sentences with English translations based on the specified difficulty level."
+                },
+                {
+                  role: "user",
+                  content: getDifficultyPrompt(difficultyLevel, randomTopic)
+                }
+              ],
+              temperature: 0.7
+            });
+
+            const content = response.choices[0]?.message?.content || '';
+            const jsonContent = JSON.parse(content);
+            
+            if (Array.isArray(jsonContent)) {
+              const startIndex = sentences.length;
+              const formattedSentences = jsonContent.map((sentence, index) => ({
+                id: startIndex + index,
+                words: sentence.text.split(' ').map(word => ({
+                  text: word,
+                  isHighlighted: false
+                })),
+                translation: sentence.translation,
+                showTranslation: false,
+                highlightedIndex: -1,
+                fontSize: sentences[0]?.fontSize || 22, // Use the font size of the first sentence
+                sliderPosition: 0
+              }));
+              setSentences(prev => [...prev, ...formattedSentences]);
+              setPage(prev => prev + 1);
+
+              // Adjust font size after a short delay to ensure DOM is updated
+              setTimeout(() => {
+                formattedSentences.forEach(sentence => {
+                  adjustFontSize(sentence.id);
+                });
+              }, 100);
+            }
+          } catch (error) {
+            console.error('Error generating more sentences:', error);
+          } finally {
+            setIsGenerating(false);
           }
         }
       },
@@ -98,7 +285,7 @@ const ReadingPractice: React.FC = () => {
     }
 
     return () => observer.disconnect();
-  }, [page, difficultyLevel]);
+  }, [page, difficultyLevel, sentences.length]);
 
   // Function to adjust font size for a specific sentence
   const adjustFontSize = (sentenceId: number) => {
@@ -110,11 +297,19 @@ const ReadingPractice: React.FC = () => {
     sentence.style.fontSize = `${currentSize}px`;
 
     // Get the container width minus padding and speaker button width
-    const maxWidth = container.clientWidth - 100; // Account for padding and speaker button
+    const maxWidth = container.clientWidth - 140; // Increased padding for safety
 
-    while (sentence.scrollWidth > maxWidth && currentSize > 16) {
-      currentSize -= 2;
+    // Keep reducing font size until the text fits
+    while (sentence.scrollWidth > maxWidth && currentSize > 12) {
+      currentSize -= 0.5; // Smaller decrements for finer control
       sentence.style.fontSize = `${currentSize}px`;
+    }
+
+    // After font size is adjusted, update the slider width
+    const slider = sentenceRefs.current[`slider-${sentenceId}`];
+    if (slider) {
+      // Use scrollWidth to get the actual text width
+      slider.style.width = `${sentence.scrollWidth}px`;
     }
 
     setSentences(prev => prev.map(s => 
@@ -138,47 +333,69 @@ const ReadingPractice: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [sentences.length]);
 
-  // Voice loading
-  useEffect(() => {
-    const loadVoices = () => {
-      const availableVoices = window.speechSynthesis.getVoices();
-      const portugueseVoices = availableVoices
-        .filter(voice => 
-          voice.lang.startsWith('pt') || 
-          voice.lang === 'pt-PT' || 
-          voice.lang === 'pt-BR'
-        )
-        .sort((a, b) => {
-          // Prioritize Google voices
-          if (a.name.includes('Google') && !b.name.includes('Google')) return -1;
-          if (!a.name.includes('Google') && b.name.includes('Google')) return 1;
-          // Then prioritize European Portuguese
-          if (a.lang === 'pt-PT' && b.lang !== 'pt-PT') return -1;
-          if (a.lang !== 'pt-PT' && b.lang === 'pt-PT') return 1;
-          return 0;
-        });
-      setVoices(portugueseVoices);
-    };
+  // Update the getAudioFromOpenAI function
+  const getAudioFromOpenAI = async (text: string) => {
+    try {
+      const response = await client.audio.speech.create({
+        model: "tts-1",
+        voice: "nova", // Changed to nova for European Portuguese
+        input: text,
+      });
 
-    loadVoices();
-    if (window.speechSynthesis.onvoiceschanged !== undefined) {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
+      const arrayBuffer = await response.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      return url;
+    } catch (error) {
+      console.error('Error generating speech:', error);
+      return null;
     }
-  }, []);
+  };
 
-  // Preload audio for all words in a sentence
+  // Update the preloadSentenceAudio function
   const preloadSentenceAudio = async (sentence: SentenceState) => {
     try {
       setIsLoadingAudio(true);
       const words = sentence.words.map(w => w.text);
+      const fullText = words.join(' ');
       
-      // Load audio for each word
-      await Promise.all(words.map(async (word) => {
-        if (!audioCache.current[word]) {
-          const response = await axios.post('/api/tts', { text: word });
-          const audio = new Audio(response.data.audioUrl);
-          await audio.load();
-          audioCache.current[word] = audio;
+      // Create unique keys for caching
+      const sentenceKey = sentence.id;
+      
+      // Load full sentence audio if not cached
+      if (!audioCache.current.sentences[sentenceKey] || 
+          audioCache.current.sentences[sentenceKey].text !== fullText) {
+        const audioUrl = await getAudioFromOpenAI(fullText);
+        if (audioUrl) {
+          const audio = new Audio(audioUrl);
+          await new Promise((resolve) => {
+            audio.addEventListener('loadeddata', resolve, { once: true });
+            audio.load();
+          });
+          audioCache.current.sentences[sentenceKey] = { 
+            audio,
+            text: fullText
+          };
+        }
+      }
+      
+      // Load individual word audio if not cached
+      await Promise.all(words.map(async (word, index) => {
+        const wordKey = `${sentence.id}-${index}-${word}`;
+        if (!audioCache.current.words[wordKey] || 
+            audioCache.current.words[wordKey].text !== word) {
+          const audioUrl = await getAudioFromOpenAI(word);
+          if (audioUrl) {
+            const audio = new Audio(audioUrl);
+            await new Promise((resolve) => {
+              audio.addEventListener('loadeddata', resolve, { once: true });
+              audio.load();
+            });
+            audioCache.current.words[wordKey] = {
+              audio,
+              text: word
+            };
+          }
         }
       }));
     } catch (error) {
@@ -195,94 +412,64 @@ const ReadingPractice: React.FC = () => {
     });
   }, [sentences]);
 
-  // Process word queue with cached audio
-  const processWordQueue = async () => {
-    if (isProcessingQueueRef.current || wordQueueRef.current.words.length === 0) return;
-    
-    isProcessingQueueRef.current = true;
-    
-    try {
-      while (wordQueueRef.current.words.length > 0) {
-        const word = wordQueueRef.current.words[0];
-        wordQueueRef.current.words = wordQueueRef.current.words.slice(1);
-        
-        // Use cached audio if available, otherwise fallback to speech synthesis
-        if (audioCache.current[word]) {
-          await new Promise<void>((resolve) => {
-            const audio = audioCache.current[word];
-            audio.onended = () => resolve();
-            audio.onerror = () => resolve();
-            audio.currentTime = 0;
-            audio.play();
-          });
-        } else {
-          await new Promise<void>((resolve) => {
-            const utterance = new SpeechSynthesisUtterance(word);
-            if (voices.length > 0) {
-              utterance.voice = voices[0];
-            }
-            utterance.lang = 'pt-PT';
-            utterance.rate = 1.2;
-            utterance.pitch = 1.0;
-            utterance.volume = 1;
-            
-            utterance.onend = () => resolve();
-            utterance.onerror = () => resolve();
-            
-            window.speechSynthesis.speak(utterance);
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error processing word queue:', error);
-    } finally {
-      isProcessingQueueRef.current = false;
-    }
-  };
-
   // Handle slider interaction for a specific sentence
   const handleSliderMove = (clientX: number, sentenceId: number, containerRect: DOMRect) => {
     const sentence = sentences.find(s => s.id === sentenceId);
     if (!sentence) return;
 
+    // Calculate the exact percentage position
     const relativeX = Math.max(0, Math.min(clientX - containerRect.left, containerRect.width));
-    const wordWidth = containerRect.width / sentence.words.length;
-    const newIndex = Math.min(Math.floor(relativeX / wordWidth), sentence.words.length - 1);
+    const percentage = (relativeX / containerRect.width) * 100;
+    
+    // Calculate word index based on percentage thresholds
+    const wordCount = sentence.words.length;
+    const wordIndex = Math.min(
+      Math.floor((percentage / 100) * wordCount),
+      wordCount - 1
+    );
 
-    // Only allow moving forward
-    if (isDragging[sentenceId] && newIndex > sentence.highlightedIndex) {
-      // Clear queue and cancel current speech if switching sentences
-      if (wordQueueRef.current.sentenceId !== sentenceId) {
-        wordQueueRef.current = { sentenceId, words: [] };
-        window.speechSynthesis.cancel();
-        isProcessingQueueRef.current = false;
+    if (isDragging[sentenceId]) {
+      // Stop any playing audio and speech
+      window.speechSynthesis.cancel();
+      Object.values(audioCache.current.words).forEach(({ audio }) => audio.pause());
+      Object.values(audioCache.current.sentences).forEach(({ audio }) => audio.pause());
+      
+      // Only speak the word when crossing word boundaries
+      if (wordIndex > sentence.highlightedIndex) {
+        const word = sentence.words[wordIndex].text;
+        const wordKey = `${sentenceId}-${wordIndex}-${word}`;
+        const cached = audioCache.current.words[wordKey];
+        
+        if (cached && cached.text === word) {
+          cached.audio.currentTime = 0;
+          cached.audio.playbackRate = 1.0;
+          cached.audio.play();
+        } else {
+          const utterance = new SpeechSynthesisUtterance(word);
+          if (voices.length > 0) {
+            utterance.voice = voices[0];
+          }
+          utterance.lang = 'pt-PT';
+          utterance.rate = 1.0;
+          utterance.pitch = 1.0;
+          utterance.volume = 1;
+          window.speechSynthesis.speak(utterance);
+        }
       }
 
-      // Calculate words to be spoken (only forward)
-      const wordsToSpeak = sentence.words
-        .slice(sentence.highlightedIndex + 1, newIndex + 1)
-        .map(w => w.text);
-
-      // Add new words to queue
-      wordQueueRef.current.words = [...wordQueueRef.current.words, ...wordsToSpeak];
-
-      // Update UI immediately
+      // Update UI with smooth slider position
       setSentences(prev => prev.map(s => {
         if (s.id !== sentenceId) return s;
         return {
           ...s,
-          highlightedIndex: newIndex,
+          sliderPosition: percentage,
+          highlightedIndex: wordIndex,
           words: s.words.map((word, index) => ({
             ...word,
-            isHighlighted: index <= newIndex
+            isHighlighted: index <= wordIndex
           }))
         };
       }));
-
-      // Start processing queue if not already processing
-      if (!isProcessingQueueRef.current) {
-        processWordQueue();
-      }
     }
   };
 
@@ -343,216 +530,362 @@ const ReadingPractice: React.FC = () => {
     };
   }, [isDragging, sentences]);
 
-  // Clean up on unmount or sentence change
+  // Update the cleanup function
   useEffect(() => {
     return () => {
-      wordQueueRef.current = { sentenceId: -1, words: [] };
-      isProcessingQueueRef.current = false;
-      window.speechSynthesis.cancel();
-      Object.values(audioCache.current).forEach(audio => {
+      Object.values(audioCache.current.words).forEach(({ audio }) => {
         audio.pause();
+        const src = audio.src;
         audio.src = '';
+        URL.revokeObjectURL(src);
       });
-      audioCache.current = {};
+      Object.values(audioCache.current.sentences).forEach(({ audio }) => {
+        audio.pause();
+        const src = audio.src;
+        audio.src = '';
+        URL.revokeObjectURL(src);
+      });
+      audioCache.current = { 
+        words: {}, 
+        sentences: {} 
+      };
     };
   }, [difficultyLevel]);
 
-  // Speak functions using cached audio
-  const speakWord = async (word: string) => {
-    if (audioCache.current[word]) {
-      const audio = audioCache.current[word];
-      audio.currentTime = 0;
-      await audio.play();
+  // Update the speakWord function
+  const speakWord = async (word: string, sentenceId: number, wordIndex: number) => {
+    // Stop any playing audio
+    Object.values(audioCache.current.words).forEach(({ audio }) => audio.pause());
+    Object.values(audioCache.current.sentences).forEach(({ audio }) => audio.pause());
+    
+    const wordKey = `${sentenceId}-${wordIndex}-${word}`;
+    const cached = audioCache.current.words[wordKey];
+    
+    if (cached && cached.text === word) {
+      cached.audio.currentTime = 0;
+      cached.audio.playbackRate = 1.0;
+      await cached.audio.play();
     } else {
-      // Fallback to speech synthesis
-      const utterance = new SpeechSynthesisUtterance(word);
-      if (voices.length > 0) {
-        utterance.voice = voices[0];
+      // If not cached or text doesn't match, get new audio
+      const audioUrl = await getAudioFromOpenAI(word);
+      if (audioUrl) {
+        const newAudio = new Audio(audioUrl);
+        await newAudio.load();
+        audioCache.current.words[wordKey] = {
+          audio: newAudio,
+          text: word
+        };
+        await newAudio.play();
       }
-      utterance.lang = 'pt-PT';
-      utterance.rate = 1.2;
-      utterance.pitch = 1.0;
-      utterance.volume = 1;
-      window.speechSynthesis.speak(utterance);
     }
   };
 
+  // Update the speakFullSentence function
   const speakFullSentence = async (sentenceId: number) => {
     const sentence = sentences.find(s => s.id === sentenceId);
     if (!sentence) return;
 
     setIsPlaying(true);
     try {
-      for (const word of sentence.words) {
-        await speakWord(word.text);
+      // Stop any playing audio
+      Object.values(audioCache.current.words).forEach(({ audio }) => audio.pause());
+      Object.values(audioCache.current.sentences).forEach(({ audio }) => audio.pause());
+      
+      const fullText = sentence.words.map(w => w.text).join(' ');
+      const cached = audioCache.current.sentences[sentenceId];
+      
+      if (cached && cached.text === fullText) {
+        cached.audio.currentTime = 0;
+        cached.audio.playbackRate = 1.0;
+        
+        // Highlight all words immediately
+        setSentences(prev => prev.map(s => {
+          if (s.id !== sentenceId) return s;
+          return {
+            ...s,
+            highlightedIndex: s.words.length - 1,
+            words: s.words.map(word => ({
+              ...word,
+              isHighlighted: true
+            }))
+          };
+        }));
+
+        await cached.audio.play();
+      } else {
+        // If not cached or text doesn't match, get new audio
+        const audioUrl = await getAudioFromOpenAI(fullText);
+        if (audioUrl) {
+          const newAudio = new Audio(audioUrl);
+          await newAudio.load();
+          audioCache.current.sentences[sentenceId] = {
+            audio: newAudio,
+            text: fullText
+          };
+          
+          // Highlight all words immediately
+          setSentences(prev => prev.map(s => {
+            if (s.id !== sentenceId) return s;
+            return {
+              ...s,
+              highlightedIndex: s.words.length - 1,
+              words: s.words.map(word => ({
+                ...word,
+                isHighlighted: true
+              }))
+            };
+          }));
+
+          await newAudio.play();
+        }
       }
+    } catch (error) {
+      console.error('Error speaking sentence:', error);
     } finally {
       setIsPlaying(false);
     }
   };
 
+  // Update renderContent to always show loading indicator
+  const renderContent = () => {
+    if (sentences.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center p-12 text-center">
+          <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">
+            Enter a topic above to generate sentences
+          </p>
+          <p className="text-gray-500 dark:text-gray-500">
+            Example topics: dogs, cooking, travel, sports
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        {sentences.map((sentence) => (
+          <div
+            key={sentence.id}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8"
+          >
+            {/* Reading Area */}
+            <div className="relative p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
+              <div className="flex flex-col gap-6">
+                {/* Text and Speaker */}
+                <div className="flex items-start justify-between gap-4">
+                  <div 
+                    ref={el => el && (sentenceRefs.current[sentence.id] = el)}
+                    className="flex-1 text-left leading-relaxed"
+                    style={{ fontSize: `${sentence.fontSize}px` }}
+                  >
+                    {sentence.words.map((word, index) => (
+                      <span
+                        key={index}
+                        className={`inline-block transition-colors duration-150 cursor-pointer select-none
+                          ${word.isHighlighted 
+                            ? 'text-blue-600 dark:text-blue-400' 
+                            : 'text-gray-600 dark:text-gray-400'
+                          }`}
+                        style={{ 
+                          marginRight: index < sentence.words.length - 1 ? '0.5em' : 0,
+                          padding: '0.1em 0',
+                        }}
+                        onClick={() => {
+                          speakWord(word.text, sentence.id, index);
+                          setSentences(prev => prev.map(s => {
+                            if (s.id !== sentence.id) return s;
+                            return {
+                              ...s,
+                              highlightedIndex: index,
+                              words: s.words.map((w, i) => ({
+                                ...w,
+                                isHighlighted: i <= index
+                              }))
+                            };
+                          }));
+                        }}
+                      >
+                        {word.text}
+                      </span>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => speakFullSentence(sentence.id)}
+                    disabled={isPlaying}
+                    className="flex-shrink-0 p-2.5 text-gray-500 hover:text-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-50 dark:bg-gray-700 rounded-xl"
+                    title="Listen to full sentence"
+                  >
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 24 24" 
+                      fill="currentColor" 
+                      className="w-6 h-6"
+                    >
+                      <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z"/>
+                      <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z"/>
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Interactive Area */}
+                <div className="space-y-6">
+                  {/* Slider */}
+                  <div className="relative flex justify-start">
+                    <div 
+                      ref={el => el && (sentenceRefs.current[`slider-${sentence.id}`] = el)}
+                      data-slider-id={sentence.id}
+                      className="relative h-3 cursor-pointer rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700"
+                      style={{ 
+                        width: sentenceRefs.current[sentence.id]?.clientWidth || 'auto',
+                        maxWidth: '100%'
+                      }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setIsDragging(prev => ({ ...prev, [sentence.id]: true }));
+                        handleSliderMove(e.clientX, sentence.id, rect);
+                      }}
+                      onTouchStart={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setIsDragging(prev => ({ ...prev, [sentence.id]: true }));
+                        handleSliderMove(e.touches[0].clientX, sentence.id, rect);
+                      }}
+                    >
+                      {/* Progress bar */}
+                      <div 
+                        className={`absolute top-0 left-0 h-full bg-blue-500/20 transform-gpu will-change-transform
+                          ${isDragging[sentence.id] ? '' : 'transition-all duration-75 ease-linear'}`}
+                        style={{ 
+                          width: `${sentence.sliderPosition}%`,
+                        }}
+                      />
+                      
+                      {/* Handle */}
+                      <div 
+                        className={`absolute top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none transform-gpu will-change-transform
+                          ${isDragging[sentence.id] ? '' : 'transition-all duration-75 ease-linear'}`}
+                        style={{ 
+                          left: `${sentence.sliderPosition}%`,
+                          transform: 'translate(-50%, -50%)',
+                        }}
+                      >
+                        <div className="h-5 w-5 bg-blue-500 rounded-full shadow-lg" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Translation Controls */}
+                  <div className="flex items-center gap-4">
+                    <button 
+                      onClick={() => setSentences(prev => prev.map(s => 
+                        s.id === sentence.id ? { ...s, showTranslation: !s.showTranslation } : s
+                      ))}
+                      className="px-4 py-2 text-sm font-medium bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl transition-colors flex items-center gap-2"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
+                      </svg>
+                      {sentence.showTranslation ? 'Hide Translation' : 'Show Translation'}
+                    </button>
+                  </div>
+
+                  {/* Translation */}
+                  {sentence.showTranslation && (
+                    <div className="text-base text-gray-500 dark:text-gray-400 italic pl-2 border-l-2 border-gray-200 dark:border-gray-600">
+                      {sentence.translation}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+        <div ref={loadingRef} className="h-20 flex items-center justify-center">
+          {isGenerating && (
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+          )}
+        </div>
+      </>
+    );
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
-      {/* Difficulty selector */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 mb-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            Practice Reading
-          </h2>
-          <div className="flex gap-2">
-            {(['beginner', 'intermediate', 'advanced'] as DifficultyLevel[]).map((level) => (
+      <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-8">
+        <div className="flex flex-col gap-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Practice Reading
+            </h2>
+            <div className="flex gap-2">
               <button
-                key={level}
-                onClick={() => setDifficultyLevel(level)}
-                className={`px-3 py-1 rounded capitalize transition-colors
-                  ${difficultyLevel === level
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300'
-                  }`}
+                onClick={() => handleTabClick('beginner')}
+                className={`px-4 py-2 rounded-xl transition-all font-medium
+                  ${difficultyLevel === 'beginner'
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'}`}
               >
-                {level}
+                Beginner
               </button>
-            ))}
+              <button
+                onClick={() => handleTabClick('intermediate')}
+                className={`px-4 py-2 rounded-xl transition-all font-medium
+                  ${difficultyLevel === 'intermediate'
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'}`}
+              >
+                Intermediate
+              </button>
+              <button
+                onClick={() => handleTabClick('advanced')}
+                className={`px-4 py-2 rounded-xl transition-all font-medium
+                  ${difficultyLevel === 'advanced'
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'}`}
+              >
+                Advanced
+              </button>
+            </div>
+          </div>
+          
+          {/* Topic input and generate button */}
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="Enter a topic..."
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              />
+            </div>
+            <button
+              onClick={generateSentences}
+              disabled={isGenerating}
+              className={`px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2 font-medium
+                ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {isGenerating ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  Generating...
+                </div>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
+                  </svg>
+                  Generate
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
 
       {/* Sentences feed */}
-      <div ref={containerRef} className="space-y-6">
-        {sentences.map((sentence) => (
-          <div
-            key={sentence.id}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6"
-          >
-            {/* Reading Area */}
-            <div className="relative p-6 bg-gray-50 dark:bg-gray-700 rounded-lg leading-relaxed select-none">
-              <div className="flex items-center gap-2 mb-4">
-                <div 
-                  ref={el => el && (sentenceRefs.current[sentence.id] = el)}
-                  className="flex-1 flex flex-nowrap whitespace-nowrap overflow-hidden"
-                  style={{ fontSize: `${sentence.fontSize}px` }}
-                >
-                  {sentence.words.map((word, index) => (
-                    <span
-                      key={index}
-                      className={`word px-2 transition-colors duration-150 cursor-pointer
-                        ${word.isHighlighted 
-                          ? 'text-blue-500' 
-                          : 'text-gray-400 dark:text-gray-500'
-                        }`}
-                      onClick={() => {
-                        speakWord(word.text);
-                        setSentences(prev => prev.map(s => {
-                          if (s.id !== sentence.id) return s;
-                          return {
-                            ...s,
-                            highlightedIndex: index,
-                            words: s.words.map((w, i) => ({
-                              ...w,
-                              isHighlighted: i <= index
-                            }))
-                          };
-                        }));
-                      }}
-                    >
-                      {word.text}
-                    </span>
-                  ))}
-                </div>
-                <button
-                  onClick={() => speakFullSentence(sentence.id)}
-                  disabled={isPlaying}
-                  className="flex-shrink-0 p-2 text-gray-500 hover:text-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Listen to full sentence"
-                >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    viewBox="0 0 24 24" 
-                    fill="currentColor" 
-                    className="w-6 h-6"
-                  >
-                    <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z"/>
-                    <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z"/>
-                  </svg>
-                </button>
-              </div>
-
-              {/* Slider */}
-              <div 
-                data-slider-id={sentence.id}
-                className="relative h-12 cursor-pointer mt-2 mb-4 w-full bg-gray-100 dark:bg-gray-600 rounded-xl overflow-hidden"
-                style={{ width: sentenceRefs.current[sentence.id]?.offsetWidth }}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setIsDragging(prev => ({ ...prev, [sentence.id]: true }));
-                  handleSliderMove(e.clientX, sentence.id, rect);
-                }}
-                onTouchStart={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setIsDragging(prev => ({ ...prev, [sentence.id]: true }));
-                  handleSliderMove(e.touches[0].clientX, sentence.id, rect);
-                }}
-              >
-                {/* Word markers */}
-                <div className="absolute top-0 left-0 w-full h-full flex">
-                  {sentence.words.map((_, index) => (
-                    <div
-                      key={index}
-                      className="h-full border-r border-gray-300 dark:border-gray-500 last:border-none"
-                      style={{ width: `${100 / sentence.words.length}%` }}
-                    />
-                  ))}
-                </div>
-
-                {/* Progress bar */}
-                <div 
-                  className={`absolute top-0 left-0 h-full bg-blue-500/10 transform-gpu will-change-transform
-                    ${isDragging[sentence.id] ? 'transition-none' : 'transition-transform duration-75 ease-out'}`}
-                  style={{ 
-                    width: `${((sentence.highlightedIndex + 1) / sentence.words.length) * 100}%`,
-                  }}
-                />
-                
-                {/* Handle */}
-                <div 
-                  className={`absolute top-0 flex items-center justify-center pointer-events-none transform-gpu will-change-transform
-                    ${isDragging[sentence.id] ? 'transition-none' : 'transition-transform duration-75 ease-out'}`}
-                  style={{ 
-                    left: `${((sentence.highlightedIndex + 1) / sentence.words.length) * 100}%`,
-                    transform: 'translateX(-50%)',
-                  }}
-                >
-                  <div className="bg-white rounded-lg shadow-lg p-2 border border-gray-200">
-                    <div className="w-4 h-4 bg-blue-500 rounded" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Translation toggle */}
-              <button 
-                onClick={() => setSentences(prev => prev.map(s => 
-                  s.id === sentence.id ? { ...s, showTranslation: !s.showTranslation } : s
-                ))}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-              >
-                {sentence.showTranslation ? 'Hide Translation' : 'Show Translation'}
-              </button>
-
-              {/* Translation */}
-              {sentence.showTranslation && (
-                <div className="mt-4 text-lg text-gray-600 dark:text-gray-400 italic">
-                  {sentence.translation}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {/* Loading indicator */}
-        <div ref={loadingRef} className="h-20 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-        </div>
+      <div ref={containerRef} className="space-y-8">
+        {renderContent()}
       </div>
     </div>
   );
