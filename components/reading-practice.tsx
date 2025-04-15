@@ -31,7 +31,7 @@ interface AudioCache {
 }
 
 const client = new OpenAI({
-  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
+  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY || '',
   dangerouslyAllowBrowser: true
 });
 
@@ -77,6 +77,13 @@ const ReadingPractice: React.FC = () => {
     return DEFAULT_TOPICS[randomIndex];
   };
 
+  // Add error handling for missing API key
+  const checkApiKey = () => {
+    if (!process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
+      throw new Error('OpenAI API key is not configured. Please add NEXT_PUBLIC_OPENAI_API_KEY to your environment variables.');
+    }
+  };
+
   // Update the prompts for different difficulty levels
   const getDifficultyPrompt = (level: DifficultyLevel, topic: string) => {
     const basePrompt = `Generate 5 European Portuguese (pt-PT) sentences about "${topic}". Format your response as a JSON array of objects, each with "text" (Portuguese) and "translation" (English) properties.`;
@@ -115,6 +122,7 @@ const ReadingPractice: React.FC = () => {
 
     setIsGenerating(true);
     try {
+      checkApiKey();
       console.log('Generating sentences for topic:', topic);
       
       const completion = await client.chat.completions.create({
@@ -169,6 +177,7 @@ const ReadingPractice: React.FC = () => {
     setDifficultyLevel(level);
     setIsGenerating(true);
     try {
+      checkApiKey();
       const randomTopic = getRandomTopic();
       setTopic(randomTopic);
       const response = await client.chat.completions.create({
@@ -225,6 +234,7 @@ const ReadingPractice: React.FC = () => {
         if (target.isIntersecting) {
           setIsGenerating(true);
           try {
+            checkApiKey();
             const randomTopic = getRandomTopic();
             const response = await client.chat.completions.create({
               model: "gpt-4",
