@@ -40,30 +40,33 @@ interface AudioCache {
   };
 }
 
-// Update the OpenAI client initialization
-const getOpenAIClient = () => {
-  const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OpenAI API key is not configured');
-  }
-  return new OpenAI({
-    apiKey,
-    dangerouslyAllowBrowser: true
-  });
-};
+// Update the getAudioFromOpenAI function
+const getAudioFromOpenAI = async (text: string) => {
+  try {
+    const response = await fetch('/api/generate-speech', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text })
+    });
 
-// Create the client
-let client: OpenAI;
-try {
-  client = getOpenAIClient();
-} catch (error) {
-  console.error('Failed to initialize OpenAI client:', error);
-  // Provide a dummy client that will throw errors when used
-  client = new OpenAI({
-    apiKey: 'dummy',
-    dangerouslyAllowBrowser: true
-  });
-}
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to generate speech');
+    }
+
+    const audioBlob = await response.blob();
+    const url = URL.createObjectURL(audioBlob);
+    return url;
+  } catch (error) {
+    console.error('Error generating speech:', error);
+    if (error instanceof Error) {
+      alert(`Failed to generate audio: ${error.message}`);
+    }
+    return null;
+  }
+};
 
 // Add default topics array
 const DEFAULT_TOPICS = [
@@ -117,7 +120,6 @@ const ReadingPractice: React.FC = () => {
   const [topic, setTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSentences, setGeneratedSentences] = useState<Sentence[]>([]);
-  const [loadingWords, setLoadingWords] = useState<{[key: string]: boolean}>({});
 
   // Function to get a random topic
   const getRandomTopic = () => {
@@ -125,57 +127,56 @@ const ReadingPractice: React.FC = () => {
     return DEFAULT_TOPICS[randomIndex];
   };
 
-  // Update the checkApiKey function
-  const checkApiKey = () => {
-    if (!process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
-      throw new Error('OpenAI API key is not configured. Please add NEXT_PUBLIC_OPENAI_API_KEY to your environment variables and restart the application.');
-    }
-  };
-
-  // Update the getDifficultyPrompt function
-  const getDifficultyPrompt = (level: DifficultyLevel, topic: string) => {
-    const formatInstructions = `
-You must respond with a JSON array of objects in this exact format:
-{
-  "sentences": [
-    {
-      "text": "Portuguese sentence here",
-      "translation": "English translation here"
-    }
-  ]
-}`;
-
-    const basePrompt = `Generate 5 European Portuguese (pt-PT) sentences about "${topic}". Return them in JSON format.`;
-    
-    let difficultyPrompt = '';
-    switch (level) {
-      case 'beginner':
-        difficultyPrompt = `${basePrompt} Make the sentences very simple, using basic vocabulary and present tense only. Use short sentences with 5-8 words maximum.`;
-        break;
-      case 'intermediate':
-        difficultyPrompt = `${basePrompt} Use moderate complexity with past tense and future tense. Include some common expressions and longer sentences.`;
-        break;
-      case 'advanced':
-        difficultyPrompt = `${basePrompt} Use complex sentence structures, subjunctive mood, and advanced vocabulary. Include idiomatic expressions and sophisticated grammar.`;
-        break;
-      default:
-        difficultyPrompt = basePrompt;
-    }
-
-    return `${difficultyPrompt}\n\n${formatInstructions}`;
-  };
-
-  // Initialize sentences on mount and difficulty change
+  // On mount, set a random topic and auto-generate sentences
   useEffect(() => {
-    // Generate initial sentences for any difficulty level
-    const generateInitialSentences = async () => {
+    if (!topic) {
       const randomTopic = getRandomTopic();
       setTopic(randomTopic);
-      handleTabClick(difficultyLevel);
-    };
-
-    generateInitialSentences();
-  }, []); // Only run on mount
+      // Generate sentences for the random topic and current difficulty
+      (async () => {
+        setIsGenerating(true);
+        try {
+          const response = await fetch('/api/generate-sentences', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              topic: randomTopic,
+              difficultyLevel
+            })
+          });
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to generate sentences');
+          }
+          const jsonContent = await response.json();
+          if (jsonContent.sentences && Array.isArray(jsonContent.sentences)) {
+            const formattedSentences = jsonContent.sentences.map((sentence, index) => ({
+              id: index,
+              words: sentence.text.split(' ').map(word => ({
+                text: word,
+                isHighlighted: false
+              })),
+              translation: sentence.translation,
+              showTranslation: false,
+              highlightedIndex: -1,
+              fontSize: 22,
+            }));
+            setSentences(formattedSentences);
+            setPage(1);
+          } else {
+            throw new Error('Invalid response format from API');
+          }
+        } catch (error) {
+          console.error('Error generating sentences:', error);
+        } finally {
+          setIsGenerating(false);
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Update the generateSentences function
   const generateSentences = async () => {
@@ -187,44 +188,25 @@ You must respond with a JSON array of objects in this exact format:
 
     setIsGenerating(true);
     try {
-      checkApiKey();
-      console.log('Generating sentences for topic:', topic);
-      
-      const completion = await client.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: "You are a Portuguese language teacher. You must respond with valid JSON only, following the exact format specified."
-          },
-          {
-            role: "user",
-            content: getDifficultyPrompt(difficultyLevel, topic)
-          }
-        ],
-        temperature: 0.7,
-        response_format: { type: "json_object" }
+      const response = await fetch('/api/generate-sentences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          topic,
+          difficultyLevel
+        })
       });
 
-      const content = completion.choices[0]?.message?.content || '';
-      console.log('Raw API response:', content);
-      
-      let jsonContent;
-      try {
-        jsonContent = JSON.parse(content);
-        if (!jsonContent.sentences || !Array.isArray(jsonContent.sentences)) {
-          throw new Error('Response does not contain sentences array');
-        }
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        throw new Error('Failed to parse API response as JSON');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate sentences');
       }
 
-      console.log('Parsed sentences:', jsonContent.sentences);
+      const jsonContent = await response.json();
       
-      if (jsonContent.sentences.every(item => 
-        item && typeof item === 'object' && 'text' in item && 'translation' in item
-      )) {
+      if (jsonContent.sentences && Array.isArray(jsonContent.sentences)) {
         const formattedSentences = jsonContent.sentences.map((sentence, index) => ({
           id: index,
           words: sentence.text.split(' ').map(word => ({
@@ -247,8 +229,9 @@ You must respond with a JSON array of objects in this exact format:
       }
     } catch (error) {
       console.error('Error generating sentences:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`Failed to generate sentences: ${errorMessage}. Please try again.`);
+      if (error instanceof Error) {
+        alert(`Failed to generate sentences: ${error.message}. Please try again.`);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -259,43 +242,28 @@ You must respond with a JSON array of objects in this exact format:
     setDifficultyLevel(level);
     setIsGenerating(true);
     try {
-      checkApiKey();
-      const currentTopic = topic.trim() || getRandomTopic();
-      const response = await client.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: "You are a Portuguese language teacher. You must respond with valid JSON only, following the exact format specified."
-          },
-          {
-            role: "user",
-            content: getDifficultyPrompt(level, currentTopic)
-          }
-        ],
-        temperature: 0.7,
-        response_format: { type: "json_object" }
+      const randomTopic = getRandomTopic();
+      setTopic(randomTopic);
+      
+      const response = await fetch('/api/generate-sentences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          topic: randomTopic,
+          difficultyLevel: level
+        })
       });
 
-      const content = response.choices[0]?.message?.content || '';
-      console.log('Raw API response:', content);
-      
-      let jsonContent;
-      try {
-        jsonContent = JSON.parse(content);
-        if (!jsonContent.sentences || !Array.isArray(jsonContent.sentences)) {
-          throw new Error('Response does not contain sentences array');
-        }
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        throw new Error('Failed to parse API response as JSON');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate sentences');
       }
 
-      console.log('Parsed sentences:', jsonContent.sentences);
+      const jsonContent = await response.json();
       
-      if (jsonContent.sentences.every(item => 
-        item && typeof item === 'object' && 'text' in item && 'translation' in item
-      )) {
+      if (jsonContent.sentences && Array.isArray(jsonContent.sentences)) {
         const formattedSentences = jsonContent.sentences.map((sentence, index) => ({
           id: index,
           words: sentence.text.split(' ').map(word => ({
@@ -313,59 +281,42 @@ You must respond with a JSON array of objects in this exact format:
         throw new Error('Invalid response format from API');
       }
     } catch (error) {
-      console.error('Error generating random sentences:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`Failed to generate sentences: ${errorMessage}. Please try again.`);
+      console.error('Error generating sentences:', error);
+      if (error instanceof Error) {
+        alert(`Failed to generate sentences: ${error.message}. Please try again.`);
+      }
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Update the intersection observer
+  // Update the intersection observer to use the current topic and difficulty
   useEffect(() => {
     const observer = new IntersectionObserver(
       async (entries) => {
         const target = entries[0];
-        if (target.isIntersecting) {
+        if (target.isIntersecting && !isGenerating && topic) {
           setIsGenerating(true);
           try {
-            checkApiKey();
-            const currentTopic = topic.trim() || getRandomTopic();
-            const response = await client.chat.completions.create({
-              model: "gpt-3.5-turbo",
-              messages: [
-                {
-                  role: "system",
-                  content: "You are a Portuguese language teacher. You must respond with valid JSON only, following the exact format specified."
-                },
-                {
-                  role: "user",
-                  content: getDifficultyPrompt(difficultyLevel, currentTopic)
-                }
-              ],
-              temperature: 0.7,
-              response_format: { type: "json_object" }
+            const response = await fetch('/api/generate-sentences', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                topic,
+                difficultyLevel
+              })
             });
 
-            const content = response.choices[0]?.message?.content || '';
-            console.log('Raw API response for more sentences:', content);
-            
-            let jsonContent;
-            try {
-              jsonContent = JSON.parse(content);
-              if (!jsonContent.sentences || !Array.isArray(jsonContent.sentences)) {
-                throw new Error('Response does not contain sentences array');
-              }
-            } catch (parseError) {
-              console.error('JSON parse error:', parseError);
-              throw new Error('Failed to parse API response as JSON');
+            if (!response.ok) {
+              const error = await response.json();
+              throw new Error(error.error || 'Failed to generate sentences');
             }
 
-            console.log('Parsed additional sentences:', jsonContent.sentences);
+            const jsonContent = await response.json();
             
-            if (jsonContent.sentences.every(item => 
-              item && typeof item === 'object' && 'text' in item && 'translation' in item
-            )) {
+            if (jsonContent.sentences && Array.isArray(jsonContent.sentences)) {
               const startIndex = sentences.length;
               const formattedSentences = jsonContent.sentences.map((sentence, index) => ({
                 id: startIndex + index,
@@ -391,6 +342,9 @@ You must respond with a JSON array of objects in this exact format:
             }
           } catch (error) {
             console.error('Error loading more sentences:', error);
+            if (error instanceof Error) {
+              alert(`Failed to load more sentences: ${error.message}. Please try again.`);
+            }
           } finally {
             setIsGenerating(false);
           }
@@ -406,7 +360,8 @@ You must respond with a JSON array of objects in this exact format:
     }
 
     return () => observer.disconnect();
-  }, [page, difficultyLevel, sentences.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, difficultyLevel, sentences.length, topic, isGenerating]);
 
   // Function to adjust font size for a specific sentence
   const adjustFontSize = (sentenceId: number) => {
@@ -453,44 +408,6 @@ You must respond with a JSON array of objects in this exact format:
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [sentences.length]);
-
-  // Update the getAudioFromOpenAI function with better error handling
-  const getAudioFromOpenAI = async (text: string) => {
-    try {
-      checkApiKey();
-      // Add explicit instruction for European Portuguese
-      const prompt = `Speak this in European Portuguese: ${text}`;
-      
-      const response = await client.audio.speech.create({
-        model: "tts-1",
-        voice: "nova",
-        input: prompt,
-        response_format: "mp3",
-        speed: 1.0
-      });
-
-      if (!response) {
-        throw new Error('No response from OpenAI API');
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
-      const url = URL.createObjectURL(blob);
-      return url;
-    } catch (error) {
-      console.error('Error generating speech:', error);
-      if (error instanceof Error) {
-        if (error.message.includes('401')) {
-          alert('Invalid API key. Please check your OpenAI API key configuration.');
-        } else if (error.message.includes('404')) {
-          alert('API endpoint not found. Please check your OpenAI API configuration.');
-        } else {
-          alert(`Failed to generate audio: ${error.message}`);
-        }
-      }
-      return null;
-    }
-  };
 
   // Add playback speed control
   const playAudioAtSpeed = async (audio: HTMLAudioElement, speed: 'normal' | 'slow' | 'fast') => {
@@ -577,109 +494,34 @@ You must respond with a JSON array of objects in this exact format:
         audio.pause();
         audio.currentTime = 0;
       });
-      
+
       const fullText = sentence.words.map(w => w.text).join(' ');
-      const cached = audioCache.current.sentences[sentenceId];
-      
-      if (cached && cached.text === fullText) {
-        cached.audio.currentTime = 0;
-        
-        // Reset word highlighting
-        setSentences(prev => prev.map(s => ({
-          ...s,
-          words: s.words.map(word => ({ ...word, isHighlighted: false }))
-        })));
+      let audioObj = audioCache.current.sentences[sentenceId]?.audio;
 
-        // Set up progress tracking
-        const updateProgress = () => {
-          const currentTime = cached.audio.currentTime;
-          const totalDuration = cached.audio.duration;
-          
-          if (!cached.wordTimings) {
-            cached.wordTimings = estimateWordTimings(sentence.words.map(w => w.text), totalDuration);
-          }
-          
-          // Find which words should be highlighted based on current time
-          const highlightedWords = cached.wordTimings.map((timing) => {
-            const adjustedTime = currentTime * (speed === 'slow' ? 0.7 : 1);
-            return adjustedTime >= timing.start;
-          });
-          
-          setSentences(prev => prev.map(s => {
-            if (s.id !== sentenceId) return s;
-            return {
-              ...s,
-              words: s.words.map((word, idx) => ({
-                ...word,
-                isHighlighted: highlightedWords[idx]
-              }))
-            };
-          }));
-        };
-
-        // Add event listeners for tracking progress
-        cached.audio.addEventListener('timeupdate', updateProgress);
-        cached.audio.addEventListener('ended', () => {
-          setIsPlaying(false);
-          cached.audio.removeEventListener('timeupdate', updateProgress);
-        });
-
-        await playAudioAtSpeed(cached.audio, speed);
-      } else {
+      if (!audioObj || audioCache.current.sentences[sentenceId]?.text !== fullText) {
         const audioUrl = await getAudioFromOpenAI(fullText);
         if (audioUrl) {
-          const newAudio = new Audio(audioUrl);
-          await newAudio.load();
-          
-          // Reset word highlighting
-          setSentences(prev => prev.map(s => ({
-            ...s,
-            words: s.words.map(word => ({ ...word, isHighlighted: false }))
-          })));
-
-          audioCache.current.sentences[sentenceId] = {
-            audio: newAudio,
-            text: fullText
-          };
-
-          // Set up progress tracking
-          const updateProgress = () => {
-            const currentTime = newAudio.currentTime;
-            const totalDuration = newAudio.duration;
-            
-            if (!audioCache.current.sentences[sentenceId].wordTimings) {
-              audioCache.current.sentences[sentenceId].wordTimings = 
-                estimateWordTimings(sentence.words.map(w => w.text), totalDuration);
-            }
-            
-            // Find which words should be highlighted based on current time
-            const timings = audioCache.current.sentences[sentenceId].wordTimings!;
-            const highlightedWords = timings.map((timing) => {
-              const adjustedTime = currentTime * (speed === 'slow' ? 0.7 : 1);
-              return adjustedTime >= timing.start;
-            });
-            
-            setSentences(prev => prev.map(s => {
-              if (s.id !== sentenceId) return s;
-              return {
-                ...s,
-                words: s.words.map((word, idx) => ({
-                  ...word,
-                  isHighlighted: highlightedWords[idx]
-                }))
-              };
-            }));
-          };
-
-          // Add event listeners for tracking progress
-          newAudio.addEventListener('timeupdate', updateProgress);
-          newAudio.addEventListener('ended', () => {
-            setIsPlaying(false);
-            newAudio.removeEventListener('timeupdate', updateProgress);
-          });
-
-          await playAudioAtSpeed(newAudio, speed);
+          audioObj = new Audio(audioUrl);
+          audioCache.current.sentences[sentenceId] = { audio: audioObj, text: fullText };
         }
+      }
+
+      if (audioObj) {
+        await playAudioAtSpeed(audioObj, speed);
+        // Optionally: highlight the whole sentence while playing
+        setSentences(prev => prev.map(s =>
+          s.id === sentenceId
+            ? { ...s, words: s.words.map(w => ({ ...w, isHighlighted: true })) }
+            : s
+        ));
+        audioObj.addEventListener('ended', () => {
+          setIsPlaying(false);
+          setSentences(prev => prev.map(s =>
+            s.id === sentenceId
+              ? { ...s, words: s.words.map(w => ({ ...w, isHighlighted: false })) }
+              : s
+          ));
+        });
       }
     } catch (error) {
       console.error('Error speaking sentence:', error);
@@ -688,31 +530,7 @@ You must respond with a JSON array of objects in this exact format:
     }
   };
 
-  // Update the speakWord function
-  const speakWord = async (word: string, sentenceId: number, wordIndex: number) => {
-    const wordKey = `${sentenceId}-${wordIndex}`;
-    try {
-      setLoadingWords(prev => ({ ...prev, [wordKey]: true }));
-      const audioUrl = await getAudioFromOpenAI(word);
-      if (audioUrl) {
-        const audio = new Audio(audioUrl);
-        audio.onerror = (e) => {
-          console.error('Error playing word audio:', e);
-          URL.revokeObjectURL(audioUrl);
-        };
-        await audio.play();
-        audio.addEventListener('ended', () => {
-          URL.revokeObjectURL(audioUrl);
-        });
-      }
-    } catch (error) {
-      console.error('Error speaking word:', error);
-    } finally {
-      setLoadingWords(prev => ({ ...prev, [wordKey]: false }));
-    }
-  };
-
-  // Update renderContent to always show loading indicator
+  // Update the renderContent to always show loading indicator
   const renderContent = () => {
     if (sentences.length === 0) {
       return (
@@ -746,8 +564,7 @@ You must respond with a JSON array of objects in this exact format:
                     {sentence.words.map((word, index) => (
                       <span
                         key={index}
-                        onClick={() => speakWord(word.text, sentence.id, index)}
-                        className={`inline-block transition-colors duration-150 select-none cursor-pointer relative
+                        className={`inline-block transition-colors duration-150 select-none
                           ${word.isHighlighted 
                             ? 'text-blue-600 dark:text-blue-400' 
                             : 'text-gray-600 dark:text-gray-400'
@@ -757,15 +574,8 @@ You must respond with a JSON array of objects in this exact format:
                           marginRight: index < sentence.words.length - 1 ? '0.5em' : 0,
                           padding: '0.1em 0',
                         }}
-                        title="Click to hear this word"
                       >
                         {word.text}
-                        {loadingWords[`${sentence.id}-${index}`] && (
-                          <div className="absolute -top-1 -right-1 w-2 h-2">
-                            <div className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></div>
-                            <div className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></div>
-                          </div>
-                        )}
                       </span>
                     ))}
                   </div>
