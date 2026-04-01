@@ -5,28 +5,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 
 interface Stats {
-  properties: {
+  contacts: {
     total: number
-    identified: number
-    owner_found: number
+    new: number
     contacted: number
+    replied: number
     interested: number
+    not_interested: number
+    deal_closed: number
+    opted_out: number
   }
-  owners: { total: number }
   emails: {
     total: number
     sent: number
-    opened: number
-    replied: number
-    open_rate: string
+    failed: number
     reply_rate: string
   }
 }
 
 const defaultStats: Stats = {
-  properties: { total: 0, identified: 0, owner_found: 0, contacted: 0, interested: 0 },
-  owners: { total: 0 },
-  emails: { total: 0, sent: 0, opened: 0, replied: 0, open_rate: '0', reply_rate: '0' },
+  contacts: { total: 0, new: 0, contacted: 0, replied: 0, interested: 0, not_interested: 0, deal_closed: 0, opted_out: 0 },
+  emails: { total: 0, sent: 0, failed: 0, reply_rate: '0' },
 }
 
 export default function OutreachDashboard() {
@@ -41,96 +40,79 @@ export default function OutreachDashboard() {
       .finally(() => setLoading(false))
   }, [])
 
-  const pipelineStages = [
-    { label: 'Identified', value: stats.properties.identified, color: 'bg-slate-500' },
-    { label: 'Owner Found', value: stats.properties.owner_found, color: 'bg-blue-500' },
-    { label: 'Contacted', value: stats.properties.contacted, color: 'bg-yellow-500' },
-    { label: 'Interested', value: stats.properties.interested, color: 'bg-green-500' },
+  const pipeline = [
+    { label: 'New', value: stats.contacts.new, color: 'bg-slate-500' },
+    { label: 'Contacted', value: stats.contacts.contacted, color: 'bg-blue-500' },
+    { label: 'Replied', value: stats.contacts.replied, color: 'bg-yellow-500' },
+    { label: 'Interested', value: stats.contacts.interested, color: 'bg-green-500' },
+    { label: 'Deal Closed', value: stats.contacts.deal_closed, color: 'bg-emerald-400' },
   ]
 
   return (
     <>
       <Head>
-        <title>Portugal Property Outreach</title>
+        <title>Portugal Outreach - Cold Email Tool</title>
       </Head>
       <div className="min-h-screen bg-black text-white p-6">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Portugal Property Outreach</h1>
-            <p className="text-gray-400">Find villa and land owners across Portugal and connect with them</p>
+            <p className="text-gray-400">Cold email tool for contacting villa & land owners across Portugal</p>
           </div>
 
-          {/* Navigation */}
+          {/* Nav */}
           <div className="flex gap-3 mb-8">
-            <Link href="/portugal-outreach/properties">
+            <Link href="/portugal-outreach/contacts">
               <Badge variant="outline" className="cursor-pointer px-4 py-2 text-sm hover:bg-white hover:text-black transition-colors">
-                Properties
-              </Badge>
-            </Link>
-            <Link href="/portugal-outreach/owners">
-              <Badge variant="outline" className="cursor-pointer px-4 py-2 text-sm hover:bg-white hover:text-black transition-colors">
-                Owners
+                Contacts
               </Badge>
             </Link>
             <Link href="/portugal-outreach/outreach">
               <Badge variant="outline" className="cursor-pointer px-4 py-2 text-sm hover:bg-white hover:text-black transition-colors">
-                Email Outreach
+                Send Emails
               </Badge>
             </Link>
           </div>
 
-          {/* Stats Cards */}
+          {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader className="pb-2">
-                <CardDescription className="text-gray-400">Total Properties</CardDescription>
-                <CardTitle className="text-3xl text-white">
-                  {loading ? '...' : stats.properties.total}
-                </CardTitle>
+                <CardDescription className="text-gray-400">Total Contacts</CardDescription>
+                <CardTitle className="text-3xl text-white">{loading ? '...' : stats.contacts.total}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-gray-500">Villas & land across Portugal</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-zinc-900 border-zinc-800">
-              <CardHeader className="pb-2">
-                <CardDescription className="text-gray-400">Owners Found</CardDescription>
-                <CardTitle className="text-3xl text-white">
-                  {loading ? '...' : stats.owners.total}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-gray-500">With contact information</p>
+                <p className="text-xs text-gray-500">{stats.contacts.new} not yet contacted</p>
               </CardContent>
             </Card>
 
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader className="pb-2">
                 <CardDescription className="text-gray-400">Emails Sent</CardDescription>
-                <CardTitle className="text-3xl text-white">
-                  {loading ? '...' : stats.emails.sent}
-                </CardTitle>
+                <CardTitle className="text-3xl text-white">{loading ? '...' : stats.emails.sent}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-gray-500">
-                  {stats.emails.open_rate}% open rate
-                </p>
+                <p className="text-xs text-gray-500">{stats.emails.failed} failed</p>
               </CardContent>
             </Card>
 
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader className="pb-2">
-                <CardDescription className="text-gray-400">Replies</CardDescription>
-                <CardTitle className="text-3xl text-green-400">
-                  {loading ? '...' : stats.emails.replied}
-                </CardTitle>
+                <CardDescription className="text-gray-400">Replied</CardDescription>
+                <CardTitle className="text-3xl text-yellow-400">{loading ? '...' : stats.contacts.replied}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-gray-500">
-                  {stats.emails.reply_rate}% reply rate
-                </p>
+                <p className="text-xs text-gray-500">{stats.emails.reply_rate}% reply rate</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-zinc-900 border-zinc-800">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-gray-400">Interested</CardDescription>
+                <CardTitle className="text-3xl text-green-400">{loading ? '...' : stats.contacts.interested}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-gray-500">{stats.contacts.deal_closed} deals closed</p>
               </CardContent>
             </Card>
           </div>
@@ -139,12 +121,12 @@ export default function OutreachDashboard() {
           <Card className="bg-zinc-900 border-zinc-800 mb-8">
             <CardHeader>
               <CardTitle className="text-white">Pipeline</CardTitle>
-              <CardDescription className="text-gray-400">Property acquisition funnel</CardDescription>
+              <CardDescription className="text-gray-400">Contact funnel from cold email to deal</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex gap-2 items-end h-40">
-                {pipelineStages.map((stage) => {
-                  const maxVal = Math.max(...pipelineStages.map(s => s.value), 1)
+                {pipeline.map((stage) => {
+                  const maxVal = Math.max(...pipeline.map(s => s.value), 1)
                   const height = Math.max((stage.value / maxVal) * 100, 8)
                   return (
                     <div key={stage.label} className="flex-1 flex flex-col items-center gap-2">
@@ -162,24 +144,13 @@ export default function OutreachDashboard() {
           </Card>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link href="/portugal-outreach/properties">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Link href="/portugal-outreach/contacts">
               <Card className="bg-zinc-900 border-zinc-800 hover:border-zinc-600 transition-colors cursor-pointer">
                 <CardHeader>
-                  <CardTitle className="text-white text-lg">Add Properties</CardTitle>
+                  <CardTitle className="text-white text-lg">Import Contacts</CardTitle>
                   <CardDescription className="text-gray-400">
-                    Import CSV or manually add villas and land parcels
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
-
-            <Link href="/portugal-outreach/owners">
-              <Card className="bg-zinc-900 border-zinc-800 hover:border-zinc-600 transition-colors cursor-pointer">
-                <CardHeader>
-                  <CardTitle className="text-white text-lg">Manage Owners</CardTitle>
-                  <CardDescription className="text-gray-400">
-                    Add owner details and link them to properties
+                    Add land & villa owners via CSV or manually. Include name, email, district, and property type.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -188,9 +159,9 @@ export default function OutreachDashboard() {
             <Link href="/portugal-outreach/outreach">
               <Card className="bg-zinc-900 border-zinc-800 hover:border-zinc-600 transition-colors cursor-pointer">
                 <CardHeader>
-                  <CardTitle className="text-white text-lg">Send Emails</CardTitle>
+                  <CardTitle className="text-white text-lg">Send Cold Emails</CardTitle>
                   <CardDescription className="text-gray-400">
-                    Contact owners with Portuguese email templates
+                    Pick a Portuguese template, select contacts, and send. Tracks delivery and replies.
                   </CardDescription>
                 </CardHeader>
               </Card>
