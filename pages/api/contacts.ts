@@ -1,22 +1,27 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { supabase } from '@/supabaseClient'
+import { requireAuth, getSupabaseServer } from '@/lib/auth'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const userId = await requireAuth(req, res)
+  if (!userId) return
+  const supabase = getSupabaseServer(req)
+
   switch (req.method) {
-    case 'GET': return getContacts(req, res)
-    case 'POST': return createContacts(req, res)
-    case 'PUT': return updateContact(req, res)
-    case 'DELETE': return deleteContact(req, res)
+    case 'GET': return getContacts(req, res, supabase, userId)
+    case 'POST': return createContacts(req, res, supabase, userId)
+    case 'PUT': return updateContact(req, res, supabase, userId)
+    case 'DELETE': return deleteContact(req, res, supabase, userId)
     default: return res.status(405).json({ error: 'Method not allowed' })
   }
 }
 
-async function getContacts(req: NextApiRequest, res: NextApiResponse) {
+async function getContacts(req: NextApiRequest, res: NextApiResponse, supabase: any, userId: string) {
   const { search, district, property_type, status, page = '1', limit = '50' } = req.query
 
   let query = supabase
     .from('contacts')
     .select('*', { count: 'exact' })
+    .eq('user_id', userId)
     .eq('opted_out', false)
 
   if (district && district !== 'all') query = query.eq('district', district)
@@ -33,16 +38,16 @@ async function getContacts(req: NextApiRequest, res: NextApiResponse) {
   return res.status(200).json({ data, total: count, page: pageNum, limit: limitNum })
 }
 
-async function createContacts(req: NextApiRequest, res: NextApiResponse) {
+async function createContacts(req: NextApiRequest, res: NextApiResponse, supabase: any, userId: string) {
   const body = req.body
-  const contacts = Array.isArray(body) ? body : [body]
+  const contacts = (Array.isArray(body) ? body : [body]).map(c => ({ ...c, user_id: userId }))
 
   const { data, error } = await supabase.from('contacts').insert(contacts).select()
   if (error) return res.status(500).json({ error: error.message })
   return res.status(201).json({ data, count: data.length })
 }
 
-async function updateContact(req: NextApiRequest, res: NextApiResponse) {
+async function updateContact(req: NextApiRequest, res: NextApiResponse, supabase: any, userId: string) {
   const { id } = req.query
   if (!id) return res.status(400).json({ error: 'ID required' })
 
@@ -50,6 +55,7 @@ async function updateContact(req: NextApiRequest, res: NextApiResponse) {
     .from('contacts')
     .update({ ...req.body, updated_at: new Date().toISOString() })
     .eq('id', id)
+    .eq('user_id', userId)
     .select()
     .single()
 
@@ -57,11 +63,11 @@ async function updateContact(req: NextApiRequest, res: NextApiResponse) {
   return res.status(200).json(data)
 }
 
-async function deleteContact(req: NextApiRequest, res: NextApiResponse) {
+async function deleteContact(req: NextApiRequest, res: NextApiResponse, supabase: any, userId: string) {
   const { id } = req.query
   if (!id) return res.status(400).json({ error: 'ID required' })
 
-  const { error } = await supabase.from('contacts').delete().eq('id', id)
+  const { error } = await supabase.from('contacts').delete().eq('id', id).eq('user_id', userId)
   if (error) return res.status(500).json({ error: error.message })
   return res.status(200).json({ success: true })
 }

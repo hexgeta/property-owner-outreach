@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { useAuth } from '@/lib/AuthContext'
+import { useAuthFetch } from '@/lib/useAuthFetch'
 import {
   Select,
   SelectContent,
@@ -60,6 +63,9 @@ interface Contact {
 }
 
 export default function ContactsPage() {
+  const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
+  const authFetch = useAuthFetch()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -69,6 +75,10 @@ export default function ContactsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    if (!authLoading && !user) router.push('/portugal-outreach/login')
+  }, [user, authLoading])
+
   const [form, setForm] = useState({
     name: '', email: '', phone: '', property_type: 'land', district: '',
     municipality: '', parish: '', property_address: '', area_m2: '',
@@ -76,6 +86,7 @@ export default function ContactsPage() {
   })
 
   const fetchContacts = async () => {
+    if (!user) return
     setLoading(true)
     const params = new URLSearchParams()
     if (search) params.set('search', search)
@@ -83,7 +94,7 @@ export default function ContactsPage() {
     if (filters.property_type) params.set('property_type', filters.property_type)
     if (filters.status) params.set('status', filters.status)
 
-    const res = await fetch(`/api/contacts?${params}`)
+    const res = await authFetch(`/api/contacts?${params}`)
     const json = await res.json()
     setContacts(json.data || [])
     setLoading(false)
@@ -92,7 +103,7 @@ export default function ContactsPage() {
   useEffect(() => {
     const t = setTimeout(fetchContacts, 300)
     return () => clearTimeout(t)
-  }, [search, filters])
+  }, [search, filters, user])
 
   const handleAdd = async () => {
     const body: any = { ...form }
@@ -100,7 +111,7 @@ export default function ContactsPage() {
     if (body.estimated_value) body.estimated_value = parseFloat(body.estimated_value); else delete body.estimated_value
     if (!body.name || !body.email) return
 
-    const res = await fetch('/api/contacts', {
+    const res = await authFetch('/api/contacts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -160,13 +171,13 @@ export default function ContactsPage() {
   }
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/contacts?id=${id}`, { method: 'DELETE' })
+    await authFetch(`/api/contacts?id=${id}`, { method: 'DELETE' })
     setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n })
     fetchContacts()
   }
 
   const handleStatusChange = async (id: string, status: string) => {
-    await fetch(`/api/contacts?id=${id}`, {
+    await authFetch(`/api/contacts?id=${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status, ...(status === 'opted_out' ? { opted_out: true, opted_out_date: new Date().toISOString() } : {}) }),
@@ -189,6 +200,8 @@ export default function ContactsPage() {
       setSelectedIds(new Set(contacts.map(c => c.id)))
     }
   }
+
+  if (authLoading || !user) return null
 
   return (
     <>

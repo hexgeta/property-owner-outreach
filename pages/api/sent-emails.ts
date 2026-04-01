@@ -8,14 +8,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!userId) return
 
   const supabase = getSupabaseServer(req)
+  const { limit = '100' } = req.query
 
-  // Get system templates (user_id IS NULL) + user's custom templates
   const { data, error } = await supabase
-    .from('email_templates')
+    .from('sent_emails')
     .select('*')
-    .or(`user_id.is.null,user_id.eq.${userId}`)
-    .order('sort_order', { ascending: true })
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(parseInt(limit as string))
 
   if (error) return res.status(500).json({ error: error.message })
-  return res.status(200).json(data)
+  return res.status(200).json({ data })
 }

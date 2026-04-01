@@ -1,8 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { supabase } from '@/supabaseClient'
+import { requireAuth, getSupabaseServer } from '@/lib/auth'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
+
+  const userId = await requireAuth(req, res)
+  if (!userId) return
+
+  const supabase = getSupabaseServer(req)
 
   const [
     { count: totalContacts },
@@ -17,17 +22,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     { count: emailsSent },
     { count: emailsFailed },
   ] = await Promise.all([
-    supabase.from('contacts').select('*', { count: 'exact', head: true }),
-    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('status', 'new'),
-    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('status', 'contacted'),
-    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('status', 'replied'),
-    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('status', 'interested'),
-    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('status', 'not_interested'),
-    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('status', 'deal_closed'),
-    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('opted_out', true),
-    supabase.from('sent_emails').select('*', { count: 'exact', head: true }),
-    supabase.from('sent_emails').select('*', { count: 'exact', head: true }).eq('status', 'sent'),
-    supabase.from('sent_emails').select('*', { count: 'exact', head: true }).eq('status', 'failed'),
+    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'new'),
+    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'contacted'),
+    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'replied'),
+    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'interested'),
+    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'not_interested'),
+    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'deal_closed'),
+    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('opted_out', true),
+    supabase.from('sent_emails').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+    supabase.from('sent_emails').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'sent'),
+    supabase.from('sent_emails').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'failed'),
   ])
 
   return res.status(200).json({

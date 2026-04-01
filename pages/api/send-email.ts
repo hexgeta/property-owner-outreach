@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { supabase } from '@/supabaseClient'
+import { requireActiveSubscription, getSupabaseServer } from '@/lib/auth'
 import nodemailer from 'nodemailer'
 
 const transporter = nodemailer.createTransport({
@@ -15,13 +15,35 @@ const transporter = nodemailer.createTransport({
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
+  const userId = await requireActiveSubscription(req, res)
+  if (!userId) return
+
+  const supabase = getSupabaseServer(req)
   const { contact_ids, subject, body_html, body_text } = req.body
 
   if (!contact_ids?.length || !subject) {
     return res.status(400).json({ error: 'contact_ids and subject are required' })
   }
 
-  // Fetch all target contacts
+  // Check email limit
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('monthly_email_limit, emails_sent_this_month')
+    .eq('id', userId)
+    .single()
+
+  if (profile) {
+    const remaining = (profile.monthly_email_limit || 50) - (profile.emails_sent_this_month || 0)
+    if (remaining < contact_ids.length) {
+      return res.status(403).json({
+        error: `Email limit reached. ${remaining} emails remaining this month.`,
+        code: 'EMAIL_LIMIT_REACHED',
+        remaining,
+      })
+    }
+  }
+
+  // Fetch contacts (RLS ensures only user's contacts)
   const { data: contacts, error: fetchError } = await supabase
     .from('contacts')
     .select('*')
@@ -35,7 +57,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   for (const contact of contacts) {
     try {
-      // Send email
       await transporter.sendMail({
         from: process.env.SMTP_FROM || process.env.SMTP_USER,
         to: contact.email,
@@ -44,8 +65,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         text: body_text,
       })
 
-      // Log sent email
       await supabase.from('sent_emails').insert({
+        user_id: userId,
         contact_id: contact.id,
         to_email: contact.email,
         subject,
@@ -55,7 +76,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         sent_at: new Date().toISOString(),
       })
 
-      // Update contact status and count
       await supabase
         .from('contacts')
         .update({
@@ -68,8 +88,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       results.push({ contact_id: contact.id, email: contact.email, status: 'sent' })
     } catch (err: any) {
-      // Log failed email
       await supabase.from('sent_emails').insert({
+        user_id: userId,
         contact_id: contact.id,
         to_email: contact.email,
         subject,
@@ -78,13 +98,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status: 'failed',
         error_message: err.message,
       })
-
       results.push({ contact_id: contact.id, email: contact.email, status: 'failed', error: err.message })
     }
   }
 
-  const sent = results.filter(r => r.status === 'sent').length
-  const failed = results.filter(r => r.status === 'failed').length
+  // Update monthly email count
+  const sentCount = results.filter(r => r.status === 'sent').length
+  if (sentCount > 0) {
+    await supabase
+      .from('profiles')
+      .update({
+        emails_sent_this_month: (profile?.emails_sent_this_month || 0) + sentCount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId)
+  }
 
-  return res.status(200).json({ sent, failed, total: results.length, results })
+  return res.status(200).json({
+    sent: sentCount,
+    failed: results.filter(r => r.status === 'failed').length,
+    total: results.length,
+    results,
+  })
 }

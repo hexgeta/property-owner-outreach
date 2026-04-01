@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import MaintenancePage from '../components/MaintenancePage';
+import { AuthProvider } from '@/lib/AuthContext';
 
 // Set this to true to enable maintenance mode
 const MAINTENANCE_MODE = false;
@@ -15,13 +16,15 @@ function MyApp({ Component, pageProps }: AppProps) {
   const [isPrivateAccess, setIsPrivateAccess] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
-  const isLivestreamPage = router.pathname === '/radio' || 
-                          router.pathname === '/liveprices' || 
-                          router.pathname === '/ethprices' || 
-                          router.pathname === '/plsprices' || 
-                          router.pathname === '/pdaiprices' || 
+  const isLivestreamPage = router.pathname === '/radio' ||
+                          router.pathname === '/liveprices' ||
+                          router.pathname === '/ethprices' ||
+                          router.pathname === '/plsprices' ||
+                          router.pathname === '/pdaiprices' ||
                           router.pathname === '/wbtcprices' ||
                           router.pathname === '/hero';
+
+  const isOutreachPage = router.pathname.startsWith('/portugal-outreach');
 
   useEffect(() => {
     setIsMounted(true);
@@ -58,11 +61,17 @@ function MyApp({ Component, pageProps }: AppProps) {
           </>
         )}
       </Head>
-      {!isLivestreamPage && <NavigationBar />}
+      {!isLivestreamPage && !isOutreachPage && <NavigationBar />}
       <div className="App">
-        <Component {...pageProps} />
+        {isOutreachPage ? (
+          <AuthProvider>
+            <Component {...pageProps} />
+          </AuthProvider>
+        ) : (
+          <Component {...pageProps} />
+        )}
       </div>
-      {!isLivestreamPage && <Footer/>}
+      {!isLivestreamPage && !isOutreachPage && <Footer/>}
     </div>
   );
 }

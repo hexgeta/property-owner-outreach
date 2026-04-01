@@ -13,6 +13,8 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs'
+import { useAuth } from '@/lib/AuthContext'
+import { useAuthFetch } from '@/lib/useAuthFetch'
 
 interface Template {
   id: string
@@ -54,12 +56,18 @@ const statusColors: Record<string, string> = {
 
 export default function OutreachPage() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
+  const authFetch = useAuthFetch()
   const { ids, email, name, district } = router.query
 
   const [templates, setTemplates] = useState<Template[]>([])
   const [sentEmails, setSentEmails] = useState<SentEmail[]>([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+
+  useEffect(() => {
+    if (!authLoading && !user) router.push('/portugal-outreach/login')
+  }, [user, authLoading])
   const [sendResult, setSendResult] = useState<{ sent?: number; failed?: number; error?: string } | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [selectedContacts, setSelectedContacts] = useState<SelectedContact[]>([])
@@ -99,7 +107,7 @@ export default function OutreachPage() {
       }])
     } else {
       // Bulk: fetch contact details
-      fetch(`/api/contacts?limit=200`)
+      authFetch(`/api/contacts?limit=200`)
         .then(r => r.json())
         .then(json => {
           const all = json.data || []
@@ -114,7 +122,7 @@ export default function OutreachPage() {
 
   // Load templates from DB (fallback to hardcoded)
   useEffect(() => {
-    fetch('/api/email-templates')
+    authFetch('/api/email-templates')
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) setTemplates(data)
@@ -125,7 +133,7 @@ export default function OutreachPage() {
 
   // Load sent emails
   useEffect(() => {
-    fetch('/api/outreach?limit=100')
+    authFetch('/api/sent-emails?limit=100')
       .then(r => r.json())
       .then(json => setSentEmails(json.data || []))
       .catch(() => {})
@@ -168,7 +176,7 @@ export default function OutreachPage() {
 
     // If single contact, send directly with personalized content
     // If bulk, send with the template as-is (personalization per contact happens server-side in future)
-    const res = await fetch('/api/send-email', {
+    const res = await authFetch('/api/send-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -183,7 +191,7 @@ export default function OutreachPage() {
     if (res.ok) {
       setSendResult({ sent: json.sent, failed: json.failed })
       // Refresh sent emails list
-      fetch('/api/outreach?limit=100')
+      authFetch('/api/sent-emails?limit=100')
         .then(r => r.json())
         .then(j => setSentEmails(j.data || []))
         .catch(() => {})
@@ -196,6 +204,8 @@ export default function OutreachPage() {
   const removeContact = (id: string) => {
     setSelectedContacts(prev => prev.filter(c => c.id !== id))
   }
+
+  if (authLoading || !user) return null
 
   return (
     <>

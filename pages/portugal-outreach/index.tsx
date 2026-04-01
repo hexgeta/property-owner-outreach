@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { useAuth } from '@/lib/AuthContext'
+import { useAuthFetch } from '@/lib/useAuthFetch'
 
 interface Stats {
   contacts: {
@@ -29,16 +33,24 @@ const defaultStats: Stats = {
 }
 
 export default function OutreachDashboard() {
+  const router = useRouter()
+  const { user, profile, loading: authLoading, signOut, isSubscribed, isTrialing } = useAuth()
+  const authFetch = useAuthFetch()
   const [stats, setStats] = useState<Stats>(defaultStats)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/outreach-stats')
+    if (!authLoading && !user) router.push('/portugal-outreach/login')
+  }, [user, authLoading])
+
+  useEffect(() => {
+    if (!user) return
+    authFetch('/api/outreach-stats')
       .then(res => res.json())
       .then(data => setStats(data))
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [])
+  }, [user])
 
   const pipeline = [
     { label: 'New', value: stats.contacts.new, color: 'bg-slate-500' },
@@ -47,6 +59,8 @@ export default function OutreachDashboard() {
     { label: 'Interested', value: stats.contacts.interested, color: 'bg-green-500' },
     { label: 'Deal Closed', value: stats.contacts.deal_closed, color: 'bg-emerald-400' },
   ]
+
+  if (authLoading || !user) return null
 
   return (
     <>
@@ -61,18 +75,51 @@ export default function OutreachDashboard() {
           </div>
 
           {/* Nav */}
-          <div className="flex gap-3 mb-8">
-            <Link href="/portugal-outreach/contacts">
-              <Badge variant="outline" className="cursor-pointer px-4 py-2 text-sm hover:bg-white hover:text-black transition-colors">
-                Contacts
-              </Badge>
-            </Link>
-            <Link href="/portugal-outreach/outreach">
-              <Badge variant="outline" className="cursor-pointer px-4 py-2 text-sm hover:bg-white hover:text-black transition-colors">
-                Send Emails
-              </Badge>
-            </Link>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex gap-3">
+              <Link href="/portugal-outreach/contacts">
+                <Badge variant="outline" className="cursor-pointer px-4 py-2 text-sm hover:bg-white hover:text-black transition-colors">
+                  Contacts
+                </Badge>
+              </Link>
+              <Link href="/portugal-outreach/outreach">
+                <Badge variant="outline" className="cursor-pointer px-4 py-2 text-sm hover:bg-white hover:text-black transition-colors">
+                  Send Emails
+                </Badge>
+              </Link>
+              <Link href="/portugal-outreach/billing">
+                <Badge variant="outline" className="cursor-pointer px-4 py-2 text-sm hover:bg-white hover:text-black transition-colors">
+                  Billing
+                </Badge>
+              </Link>
+            </div>
+            <div className="flex items-center gap-3">
+              {profile && (
+                <span className="text-sm text-gray-400">{profile.email}</span>
+              )}
+              <Button variant="ghost" size="sm" onClick={signOut} className="text-gray-400 hover:text-white">
+                Sair
+              </Button>
+            </div>
           </div>
+
+          {/* Trial/subscription banner */}
+          {!isSubscribed && isTrialing && (
+            <div className="mb-4 p-3 bg-yellow-900/30 border border-yellow-800 rounded text-sm text-yellow-300 flex items-center justify-between">
+              <span>Trial ativo — {profile?.emails_sent_this_month || 0}/{profile?.monthly_email_limit || 50} emails usados este mes</span>
+              <Link href="/portugal-outreach/billing">
+                <Button size="sm" className="bg-white text-black hover:bg-gray-200 text-xs">Upgrade</Button>
+              </Link>
+            </div>
+          )}
+          {!isSubscribed && !isTrialing && (
+            <div className="mb-4 p-3 bg-red-900/30 border border-red-800 rounded text-sm text-red-300 flex items-center justify-between">
+              <span>Trial expirado. Faca upgrade para continuar a enviar emails.</span>
+              <Link href="/portugal-outreach/billing">
+                <Button size="sm" className="bg-white text-black hover:bg-gray-200 text-xs">Ver Planos</Button>
+              </Link>
+            </div>
+          )}
 
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
