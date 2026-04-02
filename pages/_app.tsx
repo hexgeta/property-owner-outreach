@@ -5,24 +5,18 @@ import NavigationBar from '../components/NavBar';
 import Footer from '../components/Footer';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import MaintenancePage from '../components/MaintenancePage';
 import { AuthProvider } from '@/lib/AuthContext';
 
-// Set this to true to enable maintenance mode
-const MAINTENANCE_MODE = false;
+// Extend pageProps to include our layout flags
+interface CustomPageProps {
+  hideNav?: boolean;
+  hideFooter?: boolean;
+}
 
-function MyApp({ Component, pageProps }: AppProps) {
-  const router = useRouter();
+function MyApp({ Component, pageProps }: AppProps<CustomPageProps>) {
   const [isPrivateAccess, setIsPrivateAccess] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-
-  const isLivestreamPage = router.pathname === '/radio' ||
-                          router.pathname === '/liveprices' ||
-                          router.pathname === '/ethprices' ||
-                          router.pathname === '/plsprices' ||
-                          router.pathname === '/pdaiprices' ||
-                          router.pathname === '/wbtcprices' ||
-                          router.pathname === '/hero';
+  const router = useRouter();
 
   const isOutreachPage = router.pathname.startsWith('/portugal-outreach');
 
@@ -34,19 +28,6 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   if (!isMounted) {
     return null;
-  }
-
-  // Show maintenance page only if maintenance mode is on AND we're not on private subdomain
-  if (MAINTENANCE_MODE && !isPrivateAccess) {
-    return (
-      <>
-        <Head>
-          <title>Maintenance - LookIntoMaxi Ⓜ️🛡️🍀🎲🟠</title>
-          <meta name="description" content="Site is currently under maintenance." />
-        </Head>
-        <MaintenancePage />
-      </>
-    );
   }
 
   return (
@@ -61,7 +42,7 @@ function MyApp({ Component, pageProps }: AppProps) {
           </>
         )}
       </Head>
-      {!isLivestreamPage && !isOutreachPage && <NavigationBar />}
+      {!pageProps.hideNav && !isOutreachPage && <NavigationBar />}
       <div className="App">
         {isOutreachPage ? (
           <AuthProvider>
@@ -71,7 +52,7 @@ function MyApp({ Component, pageProps }: AppProps) {
           <Component {...pageProps} />
         )}
       </div>
-      {!isLivestreamPage && !isOutreachPage && <Footer/>}
+      {!pageProps.hideFooter && !isOutreachPage && <Footer/>}
     </div>
   );
 }

@@ -4,8 +4,7 @@
 @tailwind utilities;
 
 :root {
-  --background-color: #000000;
-  --text-color: #ffffff;
+  --text-color: #000000;
 }
 
 .skeleton {
@@ -40,7 +39,7 @@
 
 html,
 body {
-  @apply w-full p-[5px] m-0 font-['Chakra_Petch'] bg-[var(--background-color)] text-[var(--text-color)];
+  @apply w-full p-[5px] m-0 font-['Chakra_Petch'] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100;
 }
 
 @keyframes wave {

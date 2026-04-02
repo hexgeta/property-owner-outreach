@@ -30,3 +30,134 @@
 - More maintainable file structure
 - Cleaner code with dedicated components for each feature
 - Improved reusability of components 
+
+## [2024-03-19] Changes:
+- Removed maintenance mode logic from _app.tsx
+  - Deleted MAINTENANCE_MODE constant
+  - Removed maintenance page conditional rendering
+  - Cleaned up unused imports and code
+  - Fixed linter error related to undefined MaintenancePage component 
+
+## [2024-03-24] Changes:
+- Updated home page layout
+  - Added getStaticProps to hide navigation and footer
+  - Created cleaner, full-screen reading experience
+  - Removed distracting UI elements
+  - Focused layout on reading practice component
+- Made navigation and footer optional in _app.tsx
+  - Added CustomPageProps interface with hideNav and hideFooter flags
+  - Modified layout to conditionally render navigation and footer
+  - Added TypeScript support for custom page props
+  - Removed unused router import
+  - Improved code maintainability
+- Removed livestreaming page logic from _app.tsx
+  - Removed isLivestreamPage check and related router usage
+  - Simplified NavigationBar and Footer rendering
+  - Removed conditional rendering based on page type
+  - Cleaned up unused imports and code
+  - Improved code readability and maintainability
+- Transformed CryptoDashboard into ReadingPractice component
+  - Implemented interactive word highlighting functionality
+  - Added touch and mouse support for word tracking
+  - Created responsive layout with dark mode support
+  - Added navigation controls for multiple sentences
+  - Renamed component and file from crypto-dashboard.tsx to reading-practice.tsx
+  - Updated index page to use new ReadingPractice component
+- Enhanced ReadingPractice component with multiple features:
+  - Added multiple Portuguese sentences with English translations
+  - Implemented working Previous/Next sentence navigation
+  - Added translation toggle functionality
+  - Added progress indicator
+  - Improved button styling with disabled states
+  - Added responsive layout for controls
+  - Reset translation visibility when changing sentences
+- Enhanced ReadingPractice component with structured data and difficulty levels:
+  - Created sentences.json with categorized Portuguese sentences
+  - Added difficulty level selection (beginner, intermediate, advanced)
+  - Added tags for each sentence showing grammar concepts and themes
+  - Implemented dynamic sentence loading based on difficulty
+  - Improved UI with difficulty toggles and tag display
+  - Maintained all previous functionality (translation, navigation, highlighting)
+- Created custom 404 error page
+  - Added minimalist design with centered content
+  - Implemented "Return Home" button with hover effect
+  - Hidden navigation and footer for cleaner error page
+  - Used dark theme to match app style
+  - Added responsive padding for mobile devices
+- Fixed blank screen issue on home page
+  - Updated import path for ReadingPractice component
+  - Added proper layout styling with full height and dark theme
+  - Improved container spacing and responsiveness
+  - Fixed component rendering issues
+- Expanded Portuguese sentences dataset
+  - Added 7 new beginner-level sentences covering daily activities
+  - Added 7 new intermediate-level sentences with complex tenses
+  - Added 9 new advanced-level sentences with sophisticated grammar
+  - Included diverse topics: technology, culture, science, work
+  - Added detailed tags for grammar concepts and themes
+  - Maintained consistent structure and quality
+- Improved text-to-speech voice quality:
+  * Prioritized Google Translate-like natural feminine voice
+  * Enhanced voice selection algorithm to prefer Brazilian Portuguese
+  * Adjusted speech parameters for more natural pronunciation
+  * Optimized rate and pitch settings for better clarity
+  * Improved voice consistency across word and sentence playback
+- Improved word highlighting:
+  * Words now highlight progressively as slider moves
+  * Added smooth color transitions for better visual feedback
+  * Fixed slider responsiveness and synchronization
+  * Ensured sentences remain on a single line with dynamic font sizing
+  * Added proper error handling for speech synthesis
+- Implemented infinite scroll feed for sentences:
+  * Removed Previous/Next sentence buttons in favor of continuous scrolling
+  * Added lazy loading of sentences (5 at a time) as user scrolls
+  * Each sentence is now a self-contained card with its own slider and controls
+  * Added loading spinner for better UX during sentence loading
+  * Made difficulty selector sticky at the top for easy access
+  * Improved responsive layout and spacing between sentence cards
+  * Optimized performance with proper cleanup of observers and event listeners
+- Updated text-to-speech voice settings:
+  * Changed language preference to European Portuguese (pt-PT)
+  * Modified voice selection algorithm to prioritize pt-PT voices
+  * Updated utterance language setting for both word and sentence playback
+  * Maintained Google voice preference for better quality
+  * Kept existing rate and pitch optimizations
+- Enhanced slider functionality:
+  * Improved dragging behavior with proper mouse/touch event handling
+  * Added smooth transitions when not dragging
+  * Fixed slider responsiveness and tracking accuracy
+  * Prevented scrolling while dragging on touch devices
+  * Added proper cleanup of event listeners
+  * Implemented independent dragging state for each sentence
+  * Fixed slider handle and progress bar positioning
+- Integrated DeepL API for high-quality European Portuguese text-to-speech:
+  * Added DeepL API integration with secure key handling
+  * Created API route for text-to-speech requests
+  * Implemented audio playback using HTML5 Audio
+  * Added fallback to browser speech synthesis if DeepL fails
+  * Improved audio handling with proper cleanup
+  * Added loading states for audio processing
+  * Ensured smooth transitions between audio playback
+- Improved slider smoothness and responsiveness:
+  * Optimized slider movement calculations for smoother tracking
+  * Added hardware acceleration with transform-gpu and will-change-transform
+  * Reduced transition duration for snappier response
+  * Fixed edge cases in word selection logic
+  * Improved drag detection and event handling
+  * Added overflow handling to prevent visual glitches
+  * Optimized event listener management
+- Enhanced word pronunciation with sequential queue system:
+  * Added word queue to ensure each word is spoken in order
+  * Implemented proper handling of rapid slider movements
+  * Added support for both forward and backward word pronunciation
+  * Improved speech synchronization with visual highlighting
+  * Added cleanup for proper queue management
+  * Fixed edge cases in word selection
+  * Optimized queue processing for smooth playback
+
+Previous Changes:
+- Updated home page layout
+  - Added getStaticProps to hide navigation and footer
+  - Created cleaner, full-screen reading experience
+  - Removed distracting UI elements
+  - Focused layout on reading practice component 
