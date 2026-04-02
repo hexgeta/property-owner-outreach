@@ -1,21 +1,21 @@
-import { GetStaticProps } from 'next';
-import ReadingPractice from '../components/reading-practice';
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 export default function Home() {
-  return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8">
-        <ReadingPractice />
-      </div>
-    </div>
-  );
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/portugal-outreach');
+  }, [router]);
+
+  return null;
 }
 
-export const getStaticProps: GetStaticProps = async () => {
+export const getStaticProps = async () => {
   return {
     props: {
       hideNav: true,
-      hideFooter: true
-    }
+      hideFooter: true,
+    },
   };
 };
