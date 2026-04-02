@@ -87,9 +87,19 @@ export default function OutreachDashboard() {
                   Send Emails
                 </Badge>
               </Link>
+              <Link href="/portugal-outreach/follow-ups">
+                <Badge variant="outline" className="cursor-pointer px-4 py-2 text-sm hover:bg-white hover:text-black transition-colors">
+                  Follow-ups
+                </Badge>
+              </Link>
               <Link href="/portugal-outreach/funnel">
                 <Badge variant="outline" className="cursor-pointer px-4 py-2 text-sm hover:bg-white hover:text-black transition-colors">
                   Funnel
+                </Badge>
+              </Link>
+              <Link href="/portugal-outreach/analytics">
+                <Badge variant="outline" className="cursor-pointer px-4 py-2 text-sm hover:bg-white hover:text-black transition-colors">
+                  Analytics
                 </Badge>
               </Link>
               <Link href="/portugal-outreach/listings">

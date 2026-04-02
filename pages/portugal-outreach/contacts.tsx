@@ -159,9 +159,8 @@ export default function ContactsPage() {
     }).filter(c => c.name && c.email)
 
     if (contacts.length > 0) {
-      await fetch('/api/contacts', {
+      await authFetch('/api/contacts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(contacts),
       })
       fetchContacts()
@@ -216,6 +215,17 @@ export default function ContactsPage() {
               <p className="text-sm text-gray-400 mt-1">Property owners to contact about selling</p>
             </div>
             <div className="flex gap-2">
+              <Button variant="outline" onClick={async () => {
+                  const res = await authFetch('/api/export?type=contacts')
+                  const blob = await res.blob()
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url; a.download = 'contacts.csv'; a.click()
+                  URL.revokeObjectURL(url)
+                }}
+                className="border-zinc-700 text-white hover:bg-zinc-800">
+                Export CSV
+              </Button>
               <input ref={fileInputRef} type="file" accept=".csv" onChange={handleCsvImport} className="hidden" />
               <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={csvImporting}
                 className="border-zinc-700 text-white hover:bg-zinc-800">
@@ -334,6 +344,11 @@ export default function ContactsPage() {
               <span className="text-sm text-gray-400">{selectedIds.size} selected</span>
               <Link href={`/portugal-outreach/outreach?ids=${Array.from(selectedIds).join(',')}`}>
                 <Button size="sm" className="bg-white text-black hover:bg-gray-200">Email Selected</Button>
+              </Link>
+              <Link href={`/portugal-outreach/follow-ups`}>
+                <Button size="sm" variant="outline" className="border-zinc-700 text-white hover:bg-zinc-800">
+                  Enroll in Follow-up
+                </Button>
               </Link>
             </div>
           )}

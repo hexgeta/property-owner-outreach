@@ -78,11 +78,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (error) return res.status(500).json({ error: error.message })
 
-    // Trigger matching in the background (non-blocking)
-    fetch(`${req.headers.origin}/api/match-properties`, {
+    // Trigger matching + agent notification in the background (non-blocking)
+    const origin = req.headers.origin || 'http://localhost:3000'
+    fetch(`${origin}/api/match-properties`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ lead_id: data.id, user_id: quiz.user_id }),
+    }).catch(() => {})
+
+    fetch(`${origin}/api/notify-agent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: quiz.user_id,
+        event_type: 'quiz_submission',
+        data: { name, telegram_username, property_types, districts, max_budget, timeline },
+      }),
     }).catch(() => {})
 
     return res.status(201).json({ success: true, lead_id: data.id })

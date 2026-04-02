@@ -406,6 +406,27 @@ SMTP_FROM=your@gmail.com`}
                     Mark contacts as &quot;opted_out&quot; when they reply with REMOVER. The system
                     will automatically skip opted-out contacts when sending.
                   </div>
+
+                  <div className="p-3 bg-zinc-800 rounded text-sm text-gray-400 mt-4">
+                    <strong>Telegram Notifications</strong> — Get notified on Telegram when:
+                    <ul className="list-disc list-inside mt-1 text-xs text-gray-500">
+                      <li>A new client submits the onboarding quiz</li>
+                      <li>A contact replies to your email</li>
+                      <li>A new lead is added</li>
+                    </ul>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Set your Telegram chat ID in your Supabase profile (<code>telegram_bot_chat_id</code>).
+                      Send <code>/start</code> to your bot, then use the Telegram API to get your chat ID.
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-zinc-800 rounded text-sm text-gray-400 mt-4">
+                    <strong>Auto Follow-ups</strong> — Set up automated follow-up sequences at{' '}
+                    <a href="/portugal-outreach/follow-ups" className="text-white underline">Follow-ups page</a>.
+                    <p className="text-xs text-gray-500 mt-1">
+                      Add a cron job: <code>GET /api/process-follow-ups?secret=YOUR_CRON_SECRET</code> (hourly).
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
