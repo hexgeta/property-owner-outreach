@@ -87,6 +87,16 @@ export default function OutreachDashboard() {
                   Send Emails
                 </Badge>
               </Link>
+              <Link href="/portugal-outreach/funnel">
+                <Badge variant="outline" className="cursor-pointer px-4 py-2 text-sm hover:bg-white hover:text-black transition-colors">
+                  Funnel
+                </Badge>
+              </Link>
+              <Link href="/portugal-outreach/listings">
+                <Badge variant="outline" className="cursor-pointer px-4 py-2 text-sm hover:bg-white hover:text-black transition-colors">
+                  Listings
+                </Badge>
+              </Link>
               <Link href="/portugal-outreach/billing">
                 <Badge variant="outline" className="cursor-pointer px-4 py-2 text-sm hover:bg-white hover:text-black transition-colors">
                   Billing
@@ -191,13 +201,13 @@ export default function OutreachDashboard() {
           </Card>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link href="/portugal-outreach/contacts">
               <Card className="bg-zinc-900 border-zinc-800 hover:border-zinc-600 transition-colors cursor-pointer">
                 <CardHeader>
                   <CardTitle className="text-white text-lg">Import Contacts</CardTitle>
                   <CardDescription className="text-gray-400">
-                    Add land & villa owners via CSV or manually. Include name, email, district, and property type.
+                    Add land & villa owners via CSV or manually.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -208,7 +218,29 @@ export default function OutreachDashboard() {
                 <CardHeader>
                   <CardTitle className="text-white text-lg">Send Cold Emails</CardTitle>
                   <CardDescription className="text-gray-400">
-                    Pick a Portuguese template, select contacts, and send. Tracks delivery and replies.
+                    Portuguese templates, bulk send, track replies.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
+
+            <Link href="/portugal-outreach/funnel">
+              <Card className="bg-zinc-900 border-zinc-800 hover:border-zinc-600 transition-colors cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="text-white text-lg">Client Funnel</CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Onboarding quiz for iPad / mobile. Captures buyer criteria.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
+
+            <Link href="/portugal-outreach/listings">
+              <Card className="bg-zinc-900 border-zinc-800 hover:border-zinc-600 transition-colors cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="text-white text-lg">Listings</CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Your property inventory. Auto-matched to client leads via Telegram.
                   </CardDescription>
                 </CardHeader>
               </Card>
